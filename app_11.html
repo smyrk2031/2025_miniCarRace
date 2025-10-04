@@ -49,9 +49,10 @@ body {
 }
 
 .table-sidebar.closed {
-  width: 0;
+  width: 0 !important;
   min-width: 0;
   padding: 0;
+  border: none;
   overflow: hidden;
 }
 
@@ -70,9 +71,28 @@ body {
   font-size: 1.1em;
 }
 
+.table-close-btn {
+  background: rgba(255,100,100,0.6);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.table-close-btn:hover {
+  background: rgba(255,100,100,0.9);
+}
+
 .table-toggle-btn {
-  position: absolute;
-  left: -30px;
+  position: fixed;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 30px;
@@ -83,16 +103,21 @@ body {
   color: white;
   font-size: 18px;
   cursor: pointer;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  z-index: 10;
+  z-index: 1000;
+  pointer-events: auto;
 }
 
 .table-toggle-btn:hover {
   background: rgba(78,205,196,1);
-  left: -32px;
+  width: 32px;
+}
+
+body.table-closed .table-toggle-btn {
+  display: flex;
 }
 
 .table-resize-handle {
@@ -451,16 +476,251 @@ body {
   cursor: grabbing;
 }
 
-.time-control-panel {
+.control-graph-panel {
   margin-top: 15px;
-  padding: 12px 15px;
+  padding: 10px 15px;
   background: rgba(255,255,255,0.05);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.1);
 }
 
+.control-graph-panel h3 {
+  margin: 0 0 10px 0;
+  color: #4ecdc4;
+  font-size: 0.95em;
+  text-align: center;
+}
+
+.control-graph-container {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: grab;
+}
+
+.control-graph-container.dragging {
+  cursor: grabbing;
+}
+
+.control-graph-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.control-graph-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.control-graph-btn {
+  background: rgba(78,205,196,0.6);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.3s ease;
+}
+
+.control-graph-btn:hover {
+  background: rgba(78,205,196,0.9);
+  transform: translateY(-1px);
+}
+
+.zoom-mode-selector {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.zoom-mode-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.zoom-mode-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.zoom-mode-btn.active {
+  background: rgba(78,205,196,0.8);
+  font-weight: bold;
+}
+
+.sensor-selection {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.sensor-select-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.85em;
+}
+
+.sensor-select-checkbox:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.sensor-select-checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.map-control-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  padding: 4px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, #5fddce, #55b19d);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(78,205,196,0.4);
+}
+
+.btn.secondary {
+  background: rgba(255,255,255,0.1);
+}
+
+.btn.secondary:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.tooltip-icon {
+  display: inline-block;
+  margin-left: 5px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 16px;
+  font-size: 12px;
+  cursor: help;
+  color: #4ecdc4;
+  transition: all 0.3s ease;
+}
+
+.tooltip-icon:hover {
+  background: rgba(78,205,196,0.3);
+  transform: scale(1.2);
+}
+
+.accordion-section {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 0;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.accordion-title {
+  margin: 0;
+  padding: 15px 18px;
+  color: #4ecdc4;
+  font-size: 1.1em;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  background: rgba(255,255,255,0.03);
+}
+
+.accordion-title:hover {
+  background: rgba(78,205,196,0.1);
+}
+
+.accordion-icon {
+  transition: transform 0.3s ease;
+}
+
+.accordion-content {
+  padding: 18px;
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  opacity: 1;
+}
+
+.accordion-content.collapsed {
+  max-height: 0;
+  padding: 0 18px;
+  opacity: 0;
+}
+
+.time-control-panel {
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.time-control-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 8px;
+}
+
 .time-control-panel h3 {
-  display: none;
+  margin: 0;
+  color: #4ecdc4;
+  font-size: 1em;
+  flex-shrink: 0;
 }
 
 .time-slider-container {
@@ -536,20 +796,19 @@ body {
 }
 
 .time-display {
-  text-align: center;
-  margin-bottom: 8px;
-  padding: 5px 10px;
+  padding: 4px 12px;
   background: rgba(78,205,196,0.15);
   border-radius: 6px;
-  font-size: 0.9em;
+  font-size: 0.85em;
   font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .playback-controls {
   display: flex;
-  justify-content: center;
   gap: 6px;
-  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .play-btn {
@@ -562,6 +821,7 @@ body {
   cursor: pointer;
   font-size: 11px;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .play-btn:hover {
@@ -796,8 +1056,65 @@ body {
     <div class="interactive-graph">
       <h3>⚙️ インタラクティブマップ調整</h3>
       
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(78,205,196,0.1); border-radius: 8px;">
+        <label style="font-size: 0.9em; display: block; margin-bottom: 5px; color: #4ecdc4; font-weight: bold;">🚗 ホイールベース (mm)</label>
+        <div class="slider-container">
+          <input type="range" min="50" max="500" step="10" value="150" oninput="updateWheelbase(this.value)" style="flex: 1;">
+          <input type="number" id="wheelbaseValue" min="50" max="500" step="10" value="150" onchange="updateWheelbase(this.value)" style="width: 70px;">
+        </div>
+      </div>
+      
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(255,184,77,0.1); border-radius: 8px; border: 1px solid rgba(255,184,77,0.3);">
+        <h4 style="margin: 0 0 10px 0; color: #ffb84d; font-size: 0.95em;">⚙️ キャリブレーション</h4>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          📏 速度スケール係数
+          <span class="tooltip-icon" title="速度の全体的な倍率を調整します。コース全体が大きすぎる/小さすぎる場合に調整してください。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="10" step="0.1" value="1.0" oninput="updateSpeedScale(this.value)" style="flex: 1;">
+          <input type="number" id="speedScaleValue" min="0.1" max="10" step="0.1" value="1.0" onchange="updateSpeedScale(this.value)" style="width: 70px;">
+        </div>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          🎯 操舵ゲイン
+          <span class="tooltip-icon" title="曲がり具合の強さを調整します。カーブが緩すぎる/きつすぎる場合に調整してください。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="5" step="0.1" value="1.0" oninput="updateSteeringGain(this.value)" style="flex: 1;">
+          <input type="number" id="steeringGainValue" min="0.1" max="5" step="0.1" value="1.0" onchange="updateSteeringGain(this.value)" style="width: 70px;">
+        </div>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          ⏱️ 時間スケール
+          <span class="tooltip-icon" title="時間の流れを調整します。通常は1.0のままで問題ありません。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="5" step="0.1" value="1.0" oninput="updateTimeScale(this.value)" style="flex: 1;">
+          <input type="number" id="timeScaleValue" min="0.1" max="5" step="0.1" value="1.0" onchange="updateTimeScale(this.value)" style="width: 70px;">
+        </div>
+        
+        <button class="btn primary" onclick="recalculatePositions()" style="width: 100%; font-size: 0.85em;">💫 位置を再計算</button>
+        <button class="btn secondary" onclick="resetCalibration()" style="width: 100%; font-size: 0.85em; margin-top: 5px;">🔄 リセット</button>
+      </div>
+      
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(138,201,38,0.1); border-radius: 8px; border: 1px solid rgba(138,201,38,0.3);">
+        <h4 style="margin: 0 0 10px 0; color: #8ac926; font-size: 0.95em;">📐 実コース寸法</h4>
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">縦線の長さ (m)</label>
+        <input type="number" id="courseVertical" min="1" max="100" step="0.5" value="15" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">横線の長さ (m)</label>
+        <input type="number" id="courseHorizontal" min="1" max="100" step="0.5" value="4" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">道幅 (m)</label>
+        <input type="number" id="courseWidth" min="0.5" max="10" step="0.1" value="1.5" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <button class="btn" onclick="showCourseReference()" style="width: 100%; font-size: 0.85em;">📊 コース参照線を表示</button>
+      </div>
+      
       <div>
-        <div class="graph-title">🚗 車速マップ</div>
+        <div class="graph-title">🚗 車速マップ (Thr% → m/s)</div>
         <div class="graph-range-controls">
           <div class="range-input-group">
             <label>X軸 Min:</label>
@@ -826,7 +1143,7 @@ body {
       </div>
 
       <div style="margin-top: 15px;">
-        <div class="graph-title steering">🎯 操舵マップ</div>
+        <div class="graph-title steering">🎯 操舵マップ (Str% → 度)</div>
         <div class="graph-range-controls">
           <div class="range-input-group">
             <label>X軸 Min:</label>
@@ -864,9 +1181,9 @@ body {
       <h3>🎨 マップ表示設定</h3>
       <div class="quality-label">
         <span>センサ点密度</span>
-        <span id="densityValue">10</span>
+        <span id="densityValue">1</span>
       </div>
-      <input type="range" class="quality-slider" id="densitySlider" min="1" max="100" value="10" oninput="updateDensity(this.value)">
+      <input type="range" class="quality-slider" id="densitySlider" min="1" max="100" value="1" oninput="updateDensity(this.value)">
       
       <div class="quality-label" style="margin-top: 12px;">
         <span>センサ点サイズ</span>
@@ -899,7 +1216,7 @@ body {
         <span>ズーム</span>
         <span id="zoomValue">1.0x</span>
       </div>
-      <input type="range" class="quality-slider" id="zoomSlider" min="0.5" max="5" step="0.1" value="1" oninput="updateZoom(this.value)">
+      <input type="range" class="quality-slider" id="zoomSlider" min="0.1" max="10" step="0.1" value="1" oninput="updateZoom(this.value)">
       
       <div class="quality-label" style="margin-top: 12px;">
         <span>回転角度</span>
@@ -938,13 +1255,16 @@ body {
 
   <div class="main-content">
     <div class="canvas-wrapper">
-      <div class="canvas-container">
-        <canvas id="trackCanvas" width="900" height="700"></canvas>
-      </div>
-      
       <div class="time-control-panel">
-        <h3>⏱️ タイムライン制御</h3>
-        <div class="time-display" id="timeDisplay">時刻: --:--:--.---</div>
+        <div class="time-control-header">
+          <h3>⏱️ タイムライン制御</h3>
+          <div class="time-display" id="timeDisplay">時刻: --:--:--.---</div>
+          <div class="playback-controls">
+            <button class="play-btn" id="playBtn" onclick="togglePlayback()">▶ 再生</button>
+            <button class="play-btn" onclick="resetPlayback()">⏮ 最初から</button>
+            <button class="play-btn" onclick="jumpToEnd()">⏭ 最後へ</button>
+          </div>
+        </div>
         <div class="time-slider-container">
           <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="100">
           <div class="time-ticks" id="timeTicks"></div>
@@ -953,10 +1273,65 @@ body {
           <span id="startTime">開始: --:--:--.---</span>
           <span id="endTime">終了: --:--:--.---</span>
         </div>
-        <div class="playback-controls">
-          <button class="play-btn" id="playBtn" onclick="togglePlayback()">▶ 再生</button>
-          <button class="play-btn" onclick="resetPlayback()">⏮ 最初から</button>
-          <button class="play-btn" onclick="jumpToEnd()">⏭ 最後へ</button>
+      </div>
+      
+      <div class="canvas-container">
+        <canvas id="trackCanvas" width="900" height="700"></canvas>
+      </div>
+      
+      <div class="control-graph-panel">
+        <h3>🎮 制御入力の時系列変化</h3>
+        <div class="control-graph-container" id="controlGraphContainer">
+          <canvas class="control-graph-canvas" id="controlGraph"></canvas>
+        </div>
+        <div class="control-graph-controls">
+          <div class="zoom-mode-selector">
+            <button class="zoom-mode-btn active" id="zoomModeX" onclick="setControlGraphZoomMode('x')">X軸</button>
+            <button class="zoom-mode-btn" id="zoomModeY" onclick="setControlGraphZoomMode('y')">Y軸</button>
+            <button class="zoom-mode-btn" id="zoomModeBoth" onclick="setControlGraphZoomMode('both')">両軸</button>
+          </div>
+          <button class="control-graph-btn" onclick="zoomInControlGraph()">🔍+ ズームイン</button>
+          <button class="control-graph-btn" onclick="zoomOutControlGraph()">🔍- ズームアウト</button>
+          <button class="control-graph-btn" onclick="resetControlGraphView()">🔄 全体表示</button>
+        </div>
+      </div>
+      
+      <div class="control-graph-panel">
+        <h3>📡 超音波センサ値の時系列変化</h3>
+        <div class="sensor-selection" id="sensorSelection">
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="RrLH" checked onchange="drawSensorGraph()">
+            <span style="color: #ff3296;">● RrLH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="FrLH" checked onchange="drawSensorGraph()">
+            <span style="color: #64c8ff;">● FrLH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="Fr" checked onchange="drawSensorGraph()">
+            <span style="color: #32ff32;">● Fr</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="FrRH" checked onchange="drawSensorGraph()">
+            <span style="color: #ffc832;">● FrRH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="RrRH" checked onchange="drawSensorGraph()">
+            <span style="color: #ff6432;">● RrRH</span>
+          </label>
+        </div>
+        <div class="control-graph-container" id="sensorGraphContainer">
+          <canvas class="control-graph-canvas" id="sensorGraph"></canvas>
+        </div>
+        <div class="control-graph-controls">
+          <div class="zoom-mode-selector">
+            <button class="zoom-mode-btn active" id="sensorZoomModeX" onclick="setSensorGraphZoomMode('x')">X軸</button>
+            <button class="zoom-mode-btn" id="sensorZoomModeY" onclick="setSensorGraphZoomMode('y')">Y軸</button>
+            <button class="zoom-mode-btn" id="sensorZoomModeBoth" onclick="setSensorGraphZoomMode('both')">両軸</button>
+          </div>
+          <button class="control-graph-btn" onclick="zoomInSensorGraph()">🔍+ ズームイン</button>
+          <button class="control-graph-btn" onclick="zoomOutSensorGraph()">🔍- ズームアウト</button>
+          <button class="control-graph-btn" onclick="resetSensorGraphView()">🔄 全体表示</button>
         </div>
       </div>
     </div>
@@ -964,10 +1339,10 @@ body {
   
   <!-- テーブルサイドバー -->
   <div class="table-sidebar" id="tableSidebar">
-    <button class="table-toggle-btn" id="tableToggleBtn" onclick="toggleTableSidebar()">◀</button>
     <div class="table-resize-handle" id="tableResizeHandle"></div>
     <div class="table-header">
       <h3>📊 データテーブル</h3>
+      <button class="table-close-btn" onclick="toggleTableSidebar()">✕</button>
     </div>
     <div class="table-container" id="tableContainer">
       <table class="data-table" id="dataTable">
@@ -979,6 +1354,9 @@ body {
     </div>
   </div>
 </div>
+
+<!-- テーブル開くボタン（bodyの直下） -->
+<button class="table-toggle-btn" id="tableToggleBtn" onclick="toggleTableSidebar()">◀</button>
 
 <script>
 // グローバル変数
@@ -995,12 +1373,27 @@ const VEHICLE_WIDTH = 150;   // mm
 const COURSE_WIDTH = 1000;   // mm
 
 // 表示設定
-let sensorDensity = 10;
+let sensorDensity = 1;
 let sensorPointSize = 4;
 let sensorLineWidth = 1;
 let pastPlotsCount = 5;
 let futurePlotsCount = 5;  // 新規：未来プロット表示数
 let vehicleSizeMultiplier = 1.8;  // 車両サイズ倍率（デフォルトで1.8倍）
+
+// 車両パラメータ
+let wheelbase = 0.15;  // ホイールベース（m）デフォルト: 150mm
+
+// キャリブレーションパラメータ
+let speedScale = 1.0;     // 速度スケール係数
+let steeringGain = 1.0;   // 操舵ゲイン
+let timeScale = 1.0;      // 時間スケール
+
+// コース寸法の参照線を表示するフラグ
+let showCourseRef = false;
+
+// メディアンフィルタ
+let medianFilterEnabled = false;
+let filteredData = [];  // フィルタ済みデータ
 
 // マップ操作設定
 let mapZoom = 1.0;
@@ -1020,6 +1413,27 @@ let isTableOpen = true;
 let isResizingTable = false;
 let tableStartX = 0;
 let tableStartWidth = 0;
+
+// 制御グラフ操作設定
+let controlGraphZoomX = 1.0;
+let controlGraphZoomY = 1.0;
+let controlGraphOffsetX = 0;
+let controlGraphOffsetY = 0;
+let isDraggingControlGraph = false;
+let controlGraphDragStartX = 0;
+let controlGraphDragStartY = 0;
+let controlGraphZoomMode = 'x'; // 'x', 'y', 'both'
+
+// センサグラフ操作設定
+let sensorGraph, sensorCtx;
+let sensorGraphZoomX = 1.0;
+let sensorGraphZoomY = 1.0;
+let sensorGraphOffsetX = 0;
+let sensorGraphOffsetY = 0;
+let isDraggingSensorGraph = false;
+let sensorGraphDragStartX = 0;
+let sensorGraphDragStartY = 0;
+let sensorGraphZoomMode = 'x'; // 'x', 'y', 'both'
 
 // キャンバスのスケール情報を保存
 let canvasScaleInfo = {
@@ -1053,8 +1467,8 @@ let speedMap = [
   {key: 90, value: 4}, {key: 100, value: 5}
 ];
 let steeringMap = [
-  {key: -100, value: -45}, {key: -50, value: -22.5},
-  {key: 0, value: 0}, {key: 50, value: 22.5}, {key: 100, value: 45}
+  {key: -100, value: 45}, {key: -50, value: 22.5},
+  {key: 0, value: 0}, {key: 50, value: -22.5}, {key: 100, value: -45}
 ];
 
 // センサーごとの色定義
@@ -1069,6 +1483,7 @@ const sensorColors = {
 // グラフ関連変数
 let speedGraph, steeringGraph;
 let speedCtx, steeringCtx;
+let controlGraph, controlCtx;
 let isDragging = false;
 let dragPoint = null;
 let dragGraph = null;
@@ -1076,9 +1491,13 @@ let dragGraph = null;
 // 初期化
 document.addEventListener('DOMContentLoaded', function() {
   initializeGraphs();
+  initializeControlGraph();
+  initializeSensorGraph();
   setupEventListeners();
   setupAccordion();
   setupTableSidebar();
+  setupControlGraphEvents();
+  setupSensorGraphEvents();
   drawAllGraphs();
 });
 
@@ -1116,10 +1535,12 @@ function toggleTableSidebar() {
   
   if (isTableOpen) {
     tableSidebar.classList.remove('closed');
+    document.body.classList.remove('table-closed');
     toggleBtn.textContent = '◀';
   } else {
     tableSidebar.classList.add('closed');
-    toggleBtn.textContent = '▶';
+    document.body.classList.add('table-closed');
+    toggleBtn.textContent = '◀';
   }
 }
 
@@ -1181,6 +1602,19 @@ function scrollToCurrentRow() {
 }
 
 // アコーディオン機能のセットアップ
+function toggleAccordion(header) {
+  const content = header.nextElementSibling;
+  const icon = header.querySelector('.accordion-icon');
+  
+  content.classList.toggle('collapsed');
+  
+  if (content.classList.contains('collapsed')) {
+    icon.textContent = '▶';
+  } else {
+    icon.textContent = '▼';
+  }
+}
+
 function setupAccordion() {
   // control-groupのアコーディオン
   const controlHeaders = document.querySelectorAll('.control-group h3');
@@ -1244,6 +1678,160 @@ function updateSensorAngle(sensor, value) {
   }
 }
 
+// 車両パラメータ更新
+function updateWheelbase(value) {
+  wheelbase = parseFloat(value) / 1000;  // mmからmに変換
+  const numberInput = document.getElementById('wheelbaseValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateWheelbase"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`ホイールベース更新: ${value}mm = ${wheelbase}m`);
+}
+
+function recalculatePositions() {
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// キャリブレーション関数
+function updateSpeedScale(value) {
+  speedScale = parseFloat(value);
+  const numberInput = document.getElementById('speedScaleValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateSpeedScale"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`速度スケール更新: ${speedScale}`);
+}
+
+function updateSteeringGain(value) {
+  steeringGain = parseFloat(value);
+  const numberInput = document.getElementById('steeringGainValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateSteeringGain"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`操舵ゲイン更新: ${steeringGain}`);
+}
+
+function updateTimeScale(value) {
+  timeScale = parseFloat(value);
+  const numberInput = document.getElementById('timeScaleValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateTimeScale"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`時間スケール更新: ${timeScale}`);
+}
+
+function resetCalibration() {
+  speedScale = 1.0;
+  steeringGain = 1.0;
+  timeScale = 1.0;
+  
+  document.getElementById('speedScaleValue').value = 1.0;
+  document.getElementById('steeringGainValue').value = 1.0;
+  document.getElementById('timeScaleValue').value = 1.0;
+  
+  document.querySelectorAll('input[type="range"][oninput*="updateSpeedScale"]')[0].value = 1.0;
+  document.querySelectorAll('input[type="range"][oninput*="updateSteeringGain"]')[0].value = 1.0;
+  document.querySelectorAll('input[type="range"][oninput*="updateTimeScale"]')[0].value = 1.0;
+  
+  console.log('キャリブレーションをリセットしました');
+  
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+function showCourseReference() {
+  showCourseRef = !showCourseRef;
+  const btn = event.target;
+  if (showCourseRef) {
+    btn.textContent = '✅ 参照線を非表示';
+    btn.style.background = 'linear-gradient(135deg, #8ac926, #6ba01e)';
+  } else {
+    btn.textContent = '📊 コース参照線を表示';
+    btn.style.background = '';
+  }
+  drawTrack();
+}
+
+function resetSpeedMap() {
+  speedMap = [
+    {key: 0, value: 0}, {key: 10, value: 0.2}, {key: 20, value: 0.4},
+    {key: 30, value: 1}, {key: 40, value: 1.5}, {key: 50, value: 2},
+    {key: 60, value: 2.5}, {key: 70, value: 3}, {key: 80, value: 3.5},
+    {key: 90, value: 4}, {key: 100, value: 5}
+  ];
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+function resetSteeringMap() {
+  steeringMap = [
+    {key: -100, value: 45}, {key: -50, value: 22.5},
+    {key: 0, value: 0}, {key: 50, value: -22.5}, {key: 100, value: -45}
+  ];
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+// メディアンフィルタ関数
+function median(arr) {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function applyMedianFilter() {
+  if (!csvData.length) return;
+  
+  const windowSize = 5; // 5点のメディアンフィルタ
+  filteredData = csvData.map((row, i) => {
+    const newRow = [...row];
+    
+    // 各センサー列にフィルタを適用
+    headers.forEach((header, idx) => {
+      if (header === 'RrLH' || header === 'FrLH' || header === 'Fr' || header === 'FrRH' || header === 'RrRH') {
+        // ウィンドウ内のデータを収集
+        const window = [];
+        for (let j = Math.max(0, i - Math.floor(windowSize / 2)); j <= Math.min(csvData.length - 1, i + Math.floor(windowSize / 2)); j++) {
+          const val = parseFloat(csvData[j][idx]);
+          if (!isNaN(val)) {
+            window.push(val);
+          }
+        }
+        // メディアンを計算
+        newRow[idx] = median(window);
+      }
+    });
+    
+    return newRow;
+  });
+  
+  console.log(`メディアンフィルタ適用: ${filteredData.length}点処理`);
+}
+
+function toggleMedianFilter() {
+  medianFilterEnabled = !medianFilterEnabled;
+  
+  if (medianFilterEnabled && filteredData.length === 0) {
+    applyMedianFilter();
+  }
+  
+  console.log(`メディアンフィルタ: ${medianFilterEnabled ? 'ON' : 'OFF'}`);
+  
+  // 再描画
+  drawTrack();
+  drawControlGraph();
+  drawSensorGraph();
+}
+
 // 密度とサイズ調整
 function updateDensity(value) {
   sensorDensity = parseInt(value);
@@ -1254,6 +1842,8 @@ function updateDensity(value) {
 function updatePointSize(value) {
   sensorPointSize = parseInt(value);
   document.getElementById('sizeValue').textContent = value + 'px';
+  // プロットサイズに応じて車両サイズも調整（基本1.8倍、プロットサイズ4を基準に比例）
+  vehicleSizeMultiplier = 1.8 * (sensorPointSize / 4);
   drawTrack();
 }
 
@@ -1305,6 +1895,247 @@ function resetRotation() {
   document.getElementById('rotationSlider').value = 0;
   document.getElementById('rotationValue').textContent = '0°';
   drawTrack();
+}
+
+// 制御グラフ初期化
+function initializeControlGraph() {
+  controlGraph = document.getElementById('controlGraph');
+  if (controlGraph) {
+    controlCtx = controlGraph.getContext('2d');
+    const container = controlGraph.parentElement;
+    const rect = container.getBoundingClientRect();
+    controlGraph.width = rect.width;
+    controlGraph.height = 150;
+  }
+}
+
+// センサグラフ初期化
+function initializeSensorGraph() {
+  sensorGraph = document.getElementById('sensorGraph');
+  if (sensorGraph) {
+    sensorCtx = sensorGraph.getContext('2d');
+    const container = sensorGraph.parentElement;
+    const rect = container.getBoundingClientRect();
+    sensorGraph.width = rect.width;
+    sensorGraph.height = 200;
+  }
+}
+
+// 制御グラフのイベント設定
+function setupControlGraphEvents() {
+  const container = document.getElementById('controlGraphContainer');
+  if (!container) return;
+  
+  // マウスダウン
+  container.addEventListener('mousedown', (e) => {
+    isDraggingControlGraph = true;
+    controlGraphDragStartX = e.clientX;
+    controlGraphDragStartY = e.clientY;
+    container.classList.add('dragging');
+  });
+  
+  // マウス移動
+  container.addEventListener('mousemove', (e) => {
+    if (!isDraggingControlGraph) return;
+    
+    const deltaX = e.clientX - controlGraphDragStartX;
+    const deltaY = e.clientY - controlGraphDragStartY;
+    
+    controlGraphOffsetX += deltaX;
+    controlGraphOffsetY += deltaY;
+    
+    controlGraphDragStartX = e.clientX;
+    controlGraphDragStartY = e.clientY;
+    
+    drawControlGraph();
+  });
+  
+  // マウスアップ
+  const handleMouseUp = () => {
+    isDraggingControlGraph = false;
+    container.classList.remove('dragging');
+  };
+  
+  container.addEventListener('mouseup', handleMouseUp);
+  container.addEventListener('mouseleave', handleMouseUp);
+  
+  // マウスホイール
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.1;
+    
+    if (controlGraphZoomMode === 'x') {
+      controlGraphZoomX = Math.max(0.5, Math.min(10, controlGraphZoomX + delta));
+    } else if (controlGraphZoomMode === 'y') {
+      controlGraphZoomY = Math.max(0.5, Math.min(10, controlGraphZoomY + delta));
+    } else {
+      controlGraphZoomX = Math.max(0.5, Math.min(10, controlGraphZoomX + delta));
+      controlGraphZoomY = Math.max(0.5, Math.min(10, controlGraphZoomY + delta));
+    }
+    drawControlGraph();
+  });
+}
+
+// ズームモード切り替え
+function setControlGraphZoomMode(mode) {
+  controlGraphZoomMode = mode;
+  
+  // ボタンのアクティブ状態を更新
+  document.querySelectorAll('.zoom-mode-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (mode === 'x') {
+    document.getElementById('zoomModeX').classList.add('active');
+  } else if (mode === 'y') {
+    document.getElementById('zoomModeY').classList.add('active');
+  } else {
+    document.getElementById('zoomModeBoth').classList.add('active');
+  }
+}
+
+// 制御グラフのズーム・リセット機能
+function zoomInControlGraph() {
+  const delta = 0.2;
+  if (controlGraphZoomMode === 'x') {
+    controlGraphZoomX = Math.min(10, controlGraphZoomX + delta);
+  } else if (controlGraphZoomMode === 'y') {
+    controlGraphZoomY = Math.min(10, controlGraphZoomY + delta);
+  } else {
+    controlGraphZoomX = Math.min(10, controlGraphZoomX + delta);
+    controlGraphZoomY = Math.min(10, controlGraphZoomY + delta);
+  }
+  drawControlGraph();
+}
+
+function zoomOutControlGraph() {
+  const delta = 0.2;
+  if (controlGraphZoomMode === 'x') {
+    controlGraphZoomX = Math.max(0.5, controlGraphZoomX - delta);
+  } else if (controlGraphZoomMode === 'y') {
+    controlGraphZoomY = Math.max(0.5, controlGraphZoomY - delta);
+  } else {
+    controlGraphZoomX = Math.max(0.5, controlGraphZoomX - delta);
+    controlGraphZoomY = Math.max(0.5, controlGraphZoomY - delta);
+  }
+  drawControlGraph();
+}
+
+function resetControlGraphView() {
+  controlGraphZoomX = 1.0;
+  controlGraphZoomY = 1.0;
+  controlGraphOffsetX = 0;
+  controlGraphOffsetY = 0;
+  drawControlGraph();
+}
+
+// センサグラフのイベント設定
+function setupSensorGraphEvents() {
+  const container = document.getElementById('sensorGraphContainer');
+  if (!container) return;
+  
+  // マウスダウン
+  container.addEventListener('mousedown', (e) => {
+    isDraggingSensorGraph = true;
+    sensorGraphDragStartX = e.clientX;
+    sensorGraphDragStartY = e.clientY;
+    container.classList.add('dragging');
+  });
+  
+  // マウス移動
+  container.addEventListener('mousemove', (e) => {
+    if (!isDraggingSensorGraph) return;
+    
+    const deltaX = e.clientX - sensorGraphDragStartX;
+    const deltaY = e.clientY - sensorGraphDragStartY;
+    
+    sensorGraphOffsetX += deltaX;
+    sensorGraphOffsetY += deltaY;
+    
+    sensorGraphDragStartX = e.clientX;
+    sensorGraphDragStartY = e.clientY;
+    
+    drawSensorGraph();
+  });
+  
+  // マウスアップ
+  const handleMouseUp = () => {
+    if (isDraggingSensorGraph) {
+      isDraggingSensorGraph = false;
+      container.classList.remove('dragging');
+    }
+  };
+  
+  container.addEventListener('mouseup', handleMouseUp);
+  container.addEventListener('mouseleave', handleMouseUp);
+  
+  // マウスホイール
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.1;
+    
+    if (sensorGraphZoomMode === 'x') {
+      sensorGraphZoomX = Math.max(0.5, Math.min(10, sensorGraphZoomX + delta));
+    } else if (sensorGraphZoomMode === 'y') {
+      sensorGraphZoomY = Math.max(0.5, Math.min(10, sensorGraphZoomY + delta));
+    } else {
+      sensorGraphZoomX = Math.max(0.5, Math.min(10, sensorGraphZoomX + delta));
+      sensorGraphZoomY = Math.max(0.5, Math.min(10, sensorGraphZoomY + delta));
+    }
+    drawSensorGraph();
+  });
+}
+
+// センサグラフのズームモード切り替え
+function setSensorGraphZoomMode(mode) {
+  sensorGraphZoomMode = mode;
+  
+  document.querySelectorAll('#sensorZoomModeX, #sensorZoomModeY, #sensorZoomModeBoth').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (mode === 'x') {
+    document.getElementById('sensorZoomModeX').classList.add('active');
+  } else if (mode === 'y') {
+    document.getElementById('sensorZoomModeY').classList.add('active');
+  } else {
+    document.getElementById('sensorZoomModeBoth').classList.add('active');
+  }
+}
+
+// センサグラフのズーム・リセット機能
+function zoomInSensorGraph() {
+  const delta = 0.2;
+  if (sensorGraphZoomMode === 'x') {
+    sensorGraphZoomX = Math.min(10, sensorGraphZoomX + delta);
+  } else if (sensorGraphZoomMode === 'y') {
+    sensorGraphZoomY = Math.min(10, sensorGraphZoomY + delta);
+  } else {
+    sensorGraphZoomX = Math.min(10, sensorGraphZoomX + delta);
+    sensorGraphZoomY = Math.min(10, sensorGraphZoomY + delta);
+  }
+  drawSensorGraph();
+}
+
+function zoomOutSensorGraph() {
+  const delta = 0.2;
+  if (sensorGraphZoomMode === 'x') {
+    sensorGraphZoomX = Math.max(0.5, sensorGraphZoomX - delta);
+  } else if (sensorGraphZoomMode === 'y') {
+    sensorGraphZoomY = Math.max(0.5, sensorGraphZoomY - delta);
+  } else {
+    sensorGraphZoomX = Math.max(0.5, sensorGraphZoomX - delta);
+    sensorGraphZoomY = Math.max(0.5, sensorGraphZoomY - delta);
+  }
+  drawSensorGraph();
+}
+
+function resetSensorGraphView() {
+  sensorGraphZoomX = 1.0;
+  sensorGraphZoomY = 1.0;
+  sensorGraphOffsetX = 0;
+  sensorGraphOffsetY = 0;
+  drawSensorGraph();
 }
 
 // グラフ初期化
@@ -1369,6 +2200,16 @@ function handleCanvasMouseDown(e) {
   const clickX = e.clientX - rect.left;
   const clickY = e.clientY - rect.top;
   
+  // メディアンフィルタボタンをクリックしたか確認
+  if (canvas.medianBtnBounds) {
+    const btn = canvas.medianBtnBounds;
+    if (clickX >= btn.x && clickX <= btn.x + btn.width &&
+        clickY >= btn.y && clickY <= btn.y + btn.height) {
+      toggleMedianFilter();
+      return;
+    }
+  }
+  
   // コンパスをクリックしたか確認
   const compassRadius = 40;
   const compassCenterX = canvas.width - 80;
@@ -1383,8 +2224,15 @@ function handleCanvasMouseDown(e) {
     return;
   }
   
-  // 再生中は何もしない
-  if (isPlaying) return;
+  // 再生中は車両ドラッグのみ無効、パン操作は有効
+  if (isPlaying) {
+    // 再生中はマップドラッグのみ許可
+    isDraggingMap = true;
+    dragStartX = clickX;
+    dragStartY = clickY;
+    canvas.classList.add('dragging');
+    return;
+  }
   
   // 自車プロットまたは軌跡ライン近くをクリックしたか確認
   const clickThreshold = 20; // クリック判定の閾値（ピクセル）
@@ -1596,10 +2444,18 @@ function handleCSVUpload(e) {
     headers = lines[0].split(',');
     csvData = lines.slice(1).map(line => line.split(','));
     
+    // メディアンフィルタをリセット
+    filteredData = [];
+    if (medianFilterEnabled) {
+      applyMedianFilter();
+    }
+    
     calculatePositions();
     setupTimeSlider();
     updateStats();
     updateTableDisplay();
+    drawControlGraph();
+    drawSensorGraph();
     drawTrack();
   };
   reader.readAsText(file);
@@ -1614,16 +2470,29 @@ function calculatePositions() {
   csvData.forEach((row, i) => {
     const thr = parseFloat(row[headers.indexOf('Thr')]);
     const str = parseFloat(row[headers.indexOf('Str')]);
-    const dt = i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04;
-    const speed = interpolateMap(speedMap, thr) * 1000;
-    const angle = interpolateMap(steeringMap, str) * Math.PI/180;
+    const dt = (i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04) * timeScale;
+    
+    // 速度とステアリング角度を取得（キャリブレーション係数を適用）
+    const speed = interpolateMap(speedMap, thr) * 1000 * speedScale;
+    const angle = interpolateMap(steeringMap, str) * Math.PI/180 * steeringGain;
 
+    // 角度を更新
     theta += angle * dt;
+    
+    // 位置を更新
     x += speed * dt * scale * Math.cos(theta);
     y += speed * dt * scale * Math.sin(theta);
+    
+    // デバッグ: 最初の数行を出力
+    if (i < 5) {
+      console.log(`[${i}] thr=${thr}, str=${str}, speed=${speed.toFixed(1)}mm/s, angle=${(angle*180/Math.PI).toFixed(1)}°, dt=${dt.toFixed(4)}s, theta=${theta.toFixed(3)}rad, x=${x.toFixed(1)}mm, y=${y.toFixed(1)}mm`);
+    }
 
     positions.push({x, y, theta, row});
   });
+  
+  console.log(`位置計算完了: ${positions.length}点, 最終位置 x=${x.toFixed(1)}mm, y=${y.toFixed(1)}mm`);
+  console.log(`キャリブレーション: 速度=${speedScale}x, 操舵=${steeringGain}x, 時間=${timeScale}x`);
 }
 
 // UNIX時刻を時:分:秒.ミリ秒形式に変換
@@ -1695,6 +2564,8 @@ function updateTimeDisplay() {
     const formattedTime = formatUnixTime(unixTime);
     document.getElementById('timeDisplay').textContent = `時刻: ${formattedTime}`;
     scrollToCurrentRow();
+    drawControlGraph();
+    drawSensorGraph();
   }
 }
 
@@ -2017,8 +2888,8 @@ function resetSpeedMap() {
 
 function resetSteeringMap() {
   steeringMap = [
-    {key: -100, value: -45}, {key: -50, value: -22.5},
-    {key: 0, value: 0}, {key: 50, value: 22.5}, {key: 100, value: 45}
+    {key: -100, value: 45}, {key: -50, value: 22.5},
+    {key: 0, value: 0}, {key: 50, value: -22.5}, {key: 100, value: -45}
   ];
   drawAllGraphs();
   calculatePositions();
@@ -2158,6 +3029,56 @@ function drawTrack() {
     ctx.stroke();
   }
 
+  // コース参照線を描画（凹型コース）
+  if (showCourseRef) {
+    const courseVertical = parseFloat(document.getElementById('courseVertical').value) * 1000; // m → mm
+    const courseHorizontal = parseFloat(document.getElementById('courseHorizontal').value) * 1000;
+    const courseWidth = parseFloat(document.getElementById('courseWidth').value) * 1000;
+    
+    // コース中心を計算
+    const courseCenterX = centerX;
+    const courseCenterY = centerY;
+    
+    // 凹型コースの外側ライン（時計回り）
+    ctx.strokeStyle = 'rgba(138,201,38,0.7)';
+    ctx.lineWidth = 3 / mapZoom;
+    ctx.setLineDash([10 / mapZoom, 5 / mapZoom]);
+    ctx.beginPath();
+    
+    const halfVert = courseVertical / 2;
+    const halfHoriz = courseHorizontal / 2;
+    
+    // スケールを適用
+    const refScale = scale;
+    
+    // 外側の矩形（左上から時計回り）
+    ctx.moveTo(courseCenterX - halfHoriz * refScale, courseCenterY - halfVert * refScale);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale, courseCenterY - halfVert * refScale);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale, courseCenterY + halfVert * refScale);
+    ctx.lineTo(courseCenterX - halfHoriz * refScale, courseCenterY + halfVert * refScale);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // 内側ライン（道幅分内側）
+    ctx.strokeStyle = 'rgba(138,201,38,0.5)';
+    ctx.beginPath();
+    const innerOffset = courseWidth * refScale;
+    ctx.moveTo(courseCenterX - halfHoriz * refScale + innerOffset, courseCenterY - halfVert * refScale + innerOffset);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale - innerOffset, courseCenterY - halfVert * refScale + innerOffset);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale - innerOffset, courseCenterY + halfVert * refScale - innerOffset);
+    ctx.lineTo(courseCenterX - halfHoriz * refScale + innerOffset, courseCenterY + halfVert * refScale - innerOffset);
+    ctx.closePath();
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // 寸法表示
+    ctx.fillStyle = 'rgba(138,201,38,0.9)';
+    ctx.font = `${14 / mapZoom}px Arial`;
+    ctx.fillText(`${courseVertical/1000}m`, courseCenterX + halfHoriz * refScale + 10 / mapZoom, courseCenterY);
+    ctx.fillText(`${courseHorizontal/1000}m`, courseCenterX, courseCenterY - halfVert * refScale - 10 / mapZoom);
+  }
+
   // 全時刻範囲の軌跡線を描画
   ctx.strokeStyle = 'rgba(0,200,255,0.5)';
   ctx.lineWidth = 2 / mapZoom;
@@ -2187,7 +3108,10 @@ function drawTrack() {
       
       const cx = margin + (p.x - minX) * scale;
       const cy = margin + (p.y - minY) * scale;
-      const distance = parseFloat(p.row[idx]);
+      
+      // メディアンフィルタが有効な場合はフィルタ済みデータを使用
+      const dataSource = (medianFilterEnabled && filteredData.length > 0) ? filteredData : csvData;
+      const distance = parseFloat(dataSource[i][idx]);
       
       const totalAngle = p.theta + sensorAngleRad;
       const sx = cx + distance * scale * Math.cos(totalAngle);
@@ -2323,10 +3247,52 @@ function drawTrack() {
 
   ctx.restore();
   
-  // 変換を適用しない要素（凡例、スケール情報、コンパス）
+  // 変換を適用しない要素（凡例、スケール情報、コンパス、メディアンフィルタボタン）
   drawLegend(ctx, canvas, activeSensors);
   drawScaleInfo(ctx, canvas, scale);
   drawCompass(ctx, canvas);
+  drawMedianFilterButton(ctx, canvas);
+}
+
+// メディアンフィルタボタン描画
+function drawMedianFilterButton(ctx, canvas) {
+  const btnX = canvas.width - 80;
+  const btnY = 150;  // コンパスの下
+  const btnWidth = 120;
+  const btnHeight = 30;
+  
+  ctx.save();
+  
+  // ボタン背景
+  if (medianFilterEnabled) {
+    ctx.fillStyle = 'rgba(78,205,196,0.9)';
+  } else {
+    ctx.fillStyle = 'rgba(60,60,60,0.9)';
+  }
+  ctx.strokeStyle = medianFilterEnabled ? 'rgba(78,205,196,1)' : 'rgba(100,100,100,1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(btnX - btnWidth/2, btnY - btnHeight/2, btnWidth, btnHeight, 5);
+  ctx.fill();
+  ctx.stroke();
+  
+  // ボタンテキスト
+  ctx.fillStyle = medianFilterEnabled ? '#fff' : '#aaa';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(medianFilterEnabled ? '✓ Filter ON' : 'Filter OFF', btnX, btnY);
+  
+  ctx.restore();
+  
+  // ボタンの位置を保存（クリック判定用）
+  if (!canvas.medianBtnBounds) {
+    canvas.medianBtnBounds = {};
+  }
+  canvas.medianBtnBounds.x = btnX - btnWidth/2;
+  canvas.medianBtnBounds.y = btnY - btnHeight/2;
+  canvas.medianBtnBounds.width = btnWidth;
+  canvas.medianBtnBounds.height = btnHeight;
 }
 
 // コンパス描画
@@ -2472,8 +3438,8 @@ function drawDistanceCircles(ctx, x, y, scale) {
 
 // 車両描画
 function drawVehicle(ctx, x, y, theta, scale) {
-  const length = VEHICLE_LENGTH * scale;
-  const width = VEHICLE_WIDTH * scale;
+  const length = VEHICLE_LENGTH * scale * vehicleSizeMultiplier;
+  const width = VEHICLE_WIDTH * scale * vehicleSizeMultiplier;
   
   ctx.save();
   ctx.translate(x, y);
@@ -2518,6 +3484,478 @@ function interpolateMap(mapArray, value) {
     }
   }
   return 0;
+}
+
+// 制御グラフ描画
+function drawControlGraph() {
+  if (!controlCtx || !csvData.length || !headers.length) return;
+  
+  const strIdx = headers.indexOf('Str');
+  const thrIdx = headers.indexOf('Thr');
+  
+  if (strIdx < 0 || thrIdx < 0) return;
+  
+  const canvas = controlGraph;
+  const ctx = controlCtx;
+  const width = canvas.width;
+  const height = canvas.height;
+  const marginLeft = 45;
+  const marginRight = 45;
+  const marginTop = 20;
+  const marginBottom = 25;
+  const graphWidth = width - marginLeft - marginRight;
+  const graphHeight = height - marginTop - marginBottom;
+  
+  // クリア
+  ctx.clearRect(0, 0, width, height);
+  
+  // 背景
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // グリッド
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = marginTop + (i / 5) * graphHeight;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, y);
+    ctx.lineTo(marginLeft + graphWidth, y);
+    ctx.stroke();
+  }
+  
+  // 軸線
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // Str (舵角) の範囲: -100 ~ 100
+  // Thr (駆動) の範囲: 0 ~ 100
+  const strMin = -100;
+  const strMax = 100;
+  const thrMin = 0;
+  const thrMax = 100;
+  
+  // X軸：データのインデックス
+  const dataLength = csvData.length;
+  
+  // クリッピング領域を設定
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(marginLeft, marginTop, graphWidth, graphHeight);
+  ctx.clip();
+  
+  // ズームとパンを適用した変換
+  const centerX = marginLeft + graphWidth / 2;
+  const centerY = marginTop + graphHeight / 2;
+  
+  ctx.translate(centerX + controlGraphOffsetX, centerY + controlGraphOffsetY);
+  ctx.scale(controlGraphZoomX, controlGraphZoomY);
+  ctx.translate(-centerX, -centerY);
+  
+  // Str (青色) を描画
+  ctx.strokeStyle = '#4ecdc4';
+  ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+  ctx.beginPath();
+  csvData.forEach((row, i) => {
+    const str = parseFloat(row[strIdx]);
+    const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+    const y = marginTop + graphHeight - ((str - strMin) / (strMax - strMin)) * graphHeight;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+  
+  // Thr (赤色) を描画
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+  ctx.beginPath();
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[thrIdx]);
+    const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+    const y = marginTop + graphHeight - ((thr - thrMin) / (thrMax - thrMin)) * graphHeight;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+  
+  // 現在位置のマーカー（縦線と点）
+  if (currentTimeIndex < dataLength) {
+    const x = marginLeft + (currentTimeIndex / (dataLength - 1)) * graphWidth;
+    
+    // 縦線
+    ctx.strokeStyle = 'rgba(255,255,0,0.6)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.setLineDash([5 / controlGraphZoomX, 5 / controlGraphZoomX]);
+    ctx.beginPath();
+    ctx.moveTo(x, marginTop);
+    ctx.lineTo(x, marginTop + graphHeight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Str の点
+    const str = parseFloat(csvData[currentTimeIndex][strIdx]);
+    const strY = marginTop + graphHeight - ((str - strMin) / (strMax - strMin)) * graphHeight;
+    ctx.fillStyle = '#4ecdc4';
+    ctx.beginPath();
+    ctx.arc(x, strY, 5 / Math.sqrt(controlGraphZoomX * controlGraphZoomY), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.stroke();
+    
+    // Thr の点
+    const thr = parseFloat(csvData[currentTimeIndex][thrIdx]);
+    const thrY = marginTop + graphHeight - ((thr - thrMin) / (thrMax - thrMin)) * graphHeight;
+    ctx.fillStyle = '#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(x, thrY, 5 / Math.sqrt(controlGraphZoomX * controlGraphZoomY), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+  
+  // 表示範囲を計算（ズームとパンを考慮）
+  // 逆変換行列を使って画面座標からデータ座標を計算
+  const getDataCoords = (screenX, screenY) => {
+    const dx = screenX - centerX - controlGraphOffsetX;
+    const dy = screenY - centerY - controlGraphOffsetY;
+    const dataX = centerX + dx / controlGraphZoomX;
+    const dataY = centerY + dy / controlGraphZoomY;
+    return { x: dataX, y: dataY };
+  };
+  
+  // 表示範囲の左上と右下のデータ座標を取得
+  const topLeft = getDataCoords(marginLeft, marginTop);
+  const bottomRight = getDataCoords(marginLeft + graphWidth, marginTop + graphHeight);
+  
+  // データ値の範囲を計算
+  const visibleDataIndexMin = Math.max(0, ((topLeft.x - marginLeft) / graphWidth) * (dataLength - 1));
+  const visibleDataIndexMax = Math.min(dataLength - 1, ((bottomRight.x - marginLeft) / graphWidth) * (dataLength - 1));
+  
+  const visibleStrMin = strMax - ((bottomRight.y - marginTop) / graphHeight) * (strMax - strMin);
+  const visibleStrMax = strMax - ((topLeft.y - marginTop) / graphHeight) * (strMax - strMin);
+  
+  const visibleThrMin = thrMax - ((bottomRight.y - marginTop) / graphHeight) * (thrMax - thrMin);
+  const visibleThrMax = thrMax - ((topLeft.y - marginTop) / graphHeight) * (thrMax - thrMin);
+  
+  // Y軸ラベル (左側: Str) - 表示範囲に合わせて
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleStrMin + (i / 5) * (visibleStrMax - visibleStrMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft - 8, y + 4);
+  }
+  
+  // Y軸タイトル (左側)
+  ctx.save();
+  ctx.translate(12, marginTop + graphHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('Str (舵角 %)', 0, 0);
+  ctx.restore();
+  
+  // Y軸ラベル (右側: Thr) - 表示範囲に合わせて
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'left';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleThrMin + (i / 5) * (visibleThrMax - visibleThrMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft + graphWidth + 8, y + 4);
+  }
+  
+  // Y軸タイトル (右側)
+  ctx.save();
+  ctx.translate(width - 12, marginTop + graphHeight / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('Thr (駆動 %)', 0, 0);
+  ctx.restore();
+  
+  // X軸ラベル - 表示範囲に合わせて
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const index = Math.floor(visibleDataIndexMin + (i / 5) * (visibleDataIndexMax - visibleDataIndexMin));
+    const x = marginLeft + (i / 5) * graphWidth;
+    ctx.fillText(index, x, height - 8);
+  }
+  
+  // X軸タイトル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('データインデックス', marginLeft + graphWidth / 2, height - 2);
+}
+
+// センサグラフ描画
+function drawSensorGraph() {
+  if (!sensorCtx || !csvData || csvData.length === 0) return;
+  
+  // メディアンフィルタが有効な場合はフィルタ済みデータを使用
+  const dataSource = (medianFilterEnabled && filteredData.length > 0) ? filteredData : csvData;
+  
+  const canvas = sensorGraph;
+  const ctx = sensorCtx;
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  if (!width || !height) return;
+  
+  // 選択されたセンサを取得
+  const selectedSensors = Array.from(document.querySelectorAll('.sensor-select-checkbox input:checked'))
+    .map(cb => cb.value);
+  
+  const sensorColors = {
+    'RrLH': '#ff3296',
+    'FrLH': '#64c8ff',
+    'Fr': '#32ff32',
+    'FrRH': '#ffc832',
+    'RrRH': '#ff6432'
+  };
+  
+  const marginLeft = 60;
+  const marginRight = 30;
+  const marginTop = 30;
+  const marginBottom = 40;
+  const graphWidth = width - marginLeft - marginRight;
+  const graphHeight = height - marginTop - marginBottom;
+  
+  const dataLength = dataSource.length;
+  
+  // 背景をクリア
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, width, height);
+  
+  // センサがない場合のメッセージ
+  if (selectedSensors.length === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('センサを選択してください', width / 2, height / 2);
+    return;
+  }
+  
+  // 各センサのインデックスを取得
+  const sensorIndices = {};
+  selectedSensors.forEach(sensor => {
+    const idx = headers.indexOf(sensor);
+    if (idx !== -1) {
+      sensorIndices[sensor] = idx;
+    }
+  });
+  
+  // 全センサのデータ範囲を計算（すべて同じY軸）
+  let allMin = Infinity;
+  let allMax = -Infinity;
+  
+  Object.values(sensorIndices).forEach(idx => {
+    dataSource.forEach(row => {
+      const value = parseFloat(row[idx]);
+      if (!isNaN(value)) {
+        allMin = Math.min(allMin, value);
+        allMax = Math.max(allMax, value);
+      }
+    });
+  });
+  
+  if (!isFinite(allMin) || !isFinite(allMax)) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('データがありません', width / 2, height / 2);
+    return;
+  }
+  
+  // 範囲に余裕を持たせる
+  const range = allMax - allMin;
+  allMin -= range * 0.1;
+  allMax += range * 0.1;
+  
+  // グリッド線を描画
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = marginTop + (i / 5) * graphHeight;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, y);
+    ctx.lineTo(marginLeft + graphWidth, y);
+    ctx.stroke();
+  }
+  
+  // 軸を描画
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // クリッピング領域を設定
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(marginLeft, marginTop, graphWidth, graphHeight);
+  ctx.clip();
+  
+  // ズームとパンを適用
+  const centerX = marginLeft + graphWidth / 2;
+  const centerY = marginTop + graphHeight / 2;
+  
+  ctx.translate(centerX + sensorGraphOffsetX, centerY + sensorGraphOffsetY);
+  ctx.scale(sensorGraphZoomX, sensorGraphZoomY);
+  ctx.translate(-centerX, -centerY);
+  
+  // 各センサのラインを描画
+  selectedSensors.forEach(sensor => {
+    const idx = sensorIndices[sensor];
+    if (idx === undefined) return;
+    
+    const color = sensorColors[sensor];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+    ctx.beginPath();
+    
+    dataSource.forEach((row, i) => {
+      const value = parseFloat(row[idx]);
+      if (isNaN(value)) return;
+      
+      const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+      const y = marginTop + graphHeight - ((value - allMin) / (allMax - allMin)) * graphHeight;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+  });
+  
+  // 現在位置のマーカー
+  if (currentTimeIndex < dataLength) {
+    const x = marginLeft + (currentTimeIndex / (dataLength - 1)) * graphWidth;
+    
+    // 縦線
+    ctx.strokeStyle = 'rgba(255,255,0,0.6)';
+    ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+    ctx.setLineDash([5 / sensorGraphZoomX, 5 / sensorGraphZoomX]);
+    ctx.beginPath();
+    ctx.moveTo(x, marginTop);
+    ctx.lineTo(x, marginTop + graphHeight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // 各センサの現在位置の点
+    selectedSensors.forEach(sensor => {
+      const idx = sensorIndices[sensor];
+      if (idx === undefined) return;
+      
+      const value = parseFloat(dataSource[currentTimeIndex][idx]);
+      if (isNaN(value)) return;
+      
+      const y = marginTop + graphHeight - ((value - allMin) / (allMax - allMin)) * graphHeight;
+      const color = sensorColors[sensor];
+      
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+      ctx.stroke();
+    });
+  }
+  
+  ctx.restore();
+  
+  // 表示範囲を計算
+  const getDataCoords = (screenX, screenY) => {
+    const dx = screenX - centerX - sensorGraphOffsetX;
+    const dy = screenY - centerY - sensorGraphOffsetY;
+    const dataX = centerX + dx / sensorGraphZoomX;
+    const dataY = centerY + dy / sensorGraphZoomY;
+    return { x: dataX, y: dataY };
+  };
+  
+  const topLeft = getDataCoords(marginLeft, marginTop);
+  const bottomRight = getDataCoords(marginLeft + graphWidth, marginTop + graphHeight);
+  
+  const visibleDataIndexMin = Math.max(0, ((topLeft.x - marginLeft) / graphWidth) * (dataLength - 1));
+  const visibleDataIndexMax = Math.min(dataLength - 1, ((bottomRight.x - marginLeft) / graphWidth) * (dataLength - 1));
+  
+  const visibleMin = allMax - ((bottomRight.y - marginTop) / graphHeight) * (allMax - allMin);
+  const visibleMax = allMax - ((topLeft.y - marginTop) / graphHeight) * (allMax - allMin);
+  
+  // Y軸ラベル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleMin + (i / 5) * (visibleMax - visibleMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft - 8, y + 4);
+  }
+  
+  // Y軸タイトル
+  ctx.save();
+  ctx.translate(15, marginTop + graphHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('センサ値 (mm)', 0, 0);
+  ctx.restore();
+  
+  // X軸ラベル
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const index = Math.floor(visibleDataIndexMin + (i / 5) * (visibleDataIndexMax - visibleDataIndexMin));
+    const x = marginLeft + (i / 5) * graphWidth;
+    ctx.fillText(index, x, height - 8);
+  }
+  
+  // X軸タイトル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('データインデックス', marginLeft + graphWidth / 2, height - 2);
+  
+  // 凡例
+  const legendX = marginLeft + 10;
+  const legendY = marginTop + 10;
+  const legendLineHeight = 18;
+  
+  ctx.font = '11px Arial';
+  selectedSensors.forEach((sensor, i) => {
+    const color = sensorColors[sensor];
+    const y = legendY + i * legendLineHeight;
+    
+    // 色のボックス
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, y - 8, 12, 12);
+    
+    // センサ名
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.textAlign = 'left';
+    ctx.fillText(sensor, legendX + 18, y + 2);
+  });
 }
 </script>
 </body>
