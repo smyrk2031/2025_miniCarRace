@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ミニカーSLAM Pro - 高度操作版</title>
+<style>
+* { box-sizing: border-box; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  margin: 0; 
+  padding: 0; 
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  overflow-x: hidden;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 500px;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 2px solid rgba(255,255,255,0.1);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-sidebar {
+  width: 400px;
+  min-width: 200px;
+  max-width: 800px;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+  border-left: 2px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: width 0.3s ease;
+}
+
+.table-sidebar.closed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 15px;
+  background: rgba(255,255,255,0.1);
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header h3 {
+  margin: 0;
+  color: #4ecdc4;
+  font-size: 1.1em;
+}
+
+.table-toggle-btn {
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 60px;
+  background: rgba(78,205,196,0.8);
+  border: none;
+  border-radius: 5px 0 0 5px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.table-toggle-btn:hover {
+  background: rgba(78,205,196,1);
+  left: -32px;
+}
+
+.table-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.table-resize-handle:hover {
+  background: rgba(78,205,196,0.5);
+}
+
+.table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #fff;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 2;
+}
+
+.data-table th {
+  padding: 8px 4px;
+  text-align: left;
+  border-bottom: 2px solid rgba(78,205,196,0.5);
+  font-weight: bold;
+  white-space: nowrap;
+  background: rgba(0,0,0,0.95);
+}
+
+.data-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  white-space: nowrap;
+}
+
+.data-table tr:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.data-table tr.current-row {
+  background: rgba(0,255,100,0.3) !important;
+  font-weight: bold;
+}
+
+.data-table tr.current-row td {
+  border-top: 2px solid rgba(0,255,100,0.8);
+  border-bottom: 2px solid rgba(0,255,100,0.8);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2em;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header p {
+  margin: 8px 0 0 0;
+  opacity: 0.8;
+  font-size: 1em;
+}
+
+.control-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.control-group {
+  margin-bottom: 20px;
+}
+
+.control-group h3 {
+  margin: 0 0 12px 0;
+  color: #4ecdc4;
+  font-size: 1.1em;
+  border-bottom: 2px solid rgba(78,205,196,0.3);
+  padding-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.control-group h3:hover {
+  color: #5fddce;
+  background: rgba(78,205,196,0.1);
+  padding-left: 8px;
+  border-radius: 8px;
+}
+
+.control-group h3::after {
+  content: '▼';
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+}
+
+.control-group h3.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+.control-group-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.control-group-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.file-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed rgba(255,255,255,0.3);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.file-input:hover {
+  border-color: #4ecdc4;
+  background: rgba(78,205,196,0.1);
+}
+
+.sensor-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sensor-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+
+.sensor-checkbox:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.sensor-checkbox input {
+  margin-right: 6px;
+  transform: scale(1.1);
+}
+
+.angle-controls {
+  margin-top: 15px;
+}
+
+.angle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+
+.angle-item label {
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.angle-item input[type="number"] {
+  width: 70px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+
+.angle-item input[type="range"] {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.interactive-graph {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 15px;
+}
+
+.graph-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  margin: 12px 0;
+  cursor: crosshair;
+}
+
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+.graph-title {
+  font-size: 1em;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #ff6b6b;
+}
+
+.graph-title.steering {
+  color: #4ecdc4;
+}
+
+.graph-range-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+
+.range-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.range-input-group label {
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.range-input-group input {
+  width: 60px;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+
+.graph-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 12px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 11px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn.secondary {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+}
+
+.btn.danger {
+  background: linear-gradient(45deg, #ff416c, #ff4b2b);
+}
+
+.canvas-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0,0,0,0.3);
+  border-radius: 20px;
+  padding: 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+#trackCanvas {
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 15px;
+  background: #111;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  cursor: grab;
+}
+
+#trackCanvas.dragging {
+  cursor: grabbing;
+}
+
+.time-control-panel {
+  margin-top: 15px;
+  padding: 12px 15px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.time-control-panel h3 {
+  display: none;
+}
+
+.time-slider-container {
+  position: relative;
+  padding: 8px 0;
+  margin-bottom: 22px;
+}
+
+.time-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.2);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.time-ticks {
+  position: absolute;
+  width: 100%;
+  height: 18px;
+  top: 18px;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.time-tick {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-tick-line {
+  width: 1px;
+  height: 6px;
+  background: rgba(78,205,196,0.5);
+  margin-bottom: 2px;
+}
+
+.time-tick-label {
+  font-size: 9px;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+}
+
+.time-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(78,205,196,0.8);
+}
+
+.time-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(78,205,196,0.8);
+}
+
+.time-info {
+  display: none;
+}
+
+.time-display {
+  text-align: center;
+  margin-bottom: 8px;
+  padding: 5px 10px;
+  background: rgba(78,205,196,0.15);
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.playback-controls {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.play-btn {
+  background: linear-gradient(45deg, #00d2ff, #3a47d5);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 15px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.3s ease;
+}
+
+.play-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0,210,255,0.4);
+}
+
+.stats-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 12px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+
+.stat-value {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #4ecdc4;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  opacity: 0.8;
+  margin-top: 3px;
+}
+
+.map-quality-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 12px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.map-quality-panel h3, .interactive-graph h3, .stats-panel h3 {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.map-quality-panel h3:hover, .interactive-graph h3:hover, .stats-panel h3:hover {
+  background: rgba(78,205,196,0.1);
+}
+
+.map-quality-panel h3::after, .interactive-graph h3::after, .stats-panel h3::after {
+  content: '▼';
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+}
+
+.map-quality-panel h3.collapsed::after, .interactive-graph h3.collapsed::after, .stats-panel h3.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+.panel-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 3000px;
+  opacity: 1;
+}
+
+.panel-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.quality-slider {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.quality-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.map-control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1400px) {
+  .container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+  }
+  
+  .main-content {
+    height: 40vh;
+  }
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.control-panel, .interactive-graph, .stats-panel {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* スクロールバーカスタマイズ */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(78,205,196,0.6);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(78,205,196,0.8);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="header">
+      <h1>🚗 ミニカーSLAM Pro</h1>
+      <p>高度操作版 - Zoom・Rotation・Drag対応</p>
+      <p style="font-size: 0.85em; opacity: 0.7; margin-top: 3px;">Simultaneous Localization And Mapping</p>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <h3>📁 データファイル</h3>
+        <div class="control-group-content">
+        <input type="file" id="csvFile" accept=".csv" class="file-input">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>🔍 有効センサ</h3>
+        <div class="control-group-content">
+        <div class="sensor-controls">
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,50,150,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="RrLH" checked>
+            <span style="color: #ff3296;">●</span> RrLH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(100,200,255,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="FrLH" checked>
+            <span style="color: #64c8ff;">●</span> FrLH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(50,255,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="Fr" checked>
+            <span style="color: #32ff32;">●</span> Fr
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,200,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="FrRH" checked>
+            <span style="color: #ffc832;">●</span> FrRH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,100,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="RrRH" checked>
+            <span style="color: #ff6432;">●</span> RrRH
+          </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>📐 センサー取付角度（車両前方を0度、右回り）</h3>
+        <div class="control-group-content">
+        <div class="angle-controls">
+          <div class="angle-item">
+            <label><span style="color: #32ff32;">●</span> Fr (正面)</label>
+            <input type="range" min="0" max="360" value="0" oninput="updateSensorAngle('Fr', this.value)">
+            <input type="number" id="angleFr" min="0" max="360" value="0" onchange="updateSensorAngle('Fr', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ffc832;">●</span> FrRH (右前)</label>
+            <input type="range" min="0" max="360" value="35" oninput="updateSensorAngle('FrRH', this.value)">
+            <input type="number" id="angleFrRH" min="0" max="360" value="35" onchange="updateSensorAngle('FrRH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ff6432;">●</span> RrRH (右後)</label>
+            <input type="range" min="0" max="360" value="90" oninput="updateSensorAngle('RrRH', this.value)">
+            <input type="number" id="angleRrRH" min="0" max="360" value="90" onchange="updateSensorAngle('RrRH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ff3296;">●</span> RrLH (左後)</label>
+            <input type="range" min="0" max="360" value="270" oninput="updateSensorAngle('RrLH', this.value)">
+            <input type="number" id="angleRrLH" min="0" max="360" value="270" onchange="updateSensorAngle('RrLH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #64c8ff;">●</span> FrLH (左前)</label>
+            <input type="range" min="0" max="360" value="325" oninput="updateSensorAngle('FrLH', this.value)">
+            <input type="number" id="angleFrLH" min="0" max="360" value="325" onchange="updateSensorAngle('FrLH', this.value)">°
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="interactive-graph">
+      <h3>⚙️ インタラクティブマップ調整</h3>
+      
+      <div>
+        <div class="graph-title">🚗 車速マップ</div>
+        <div class="graph-range-controls">
+          <div class="range-input-group">
+            <label>X軸 Min:</label>
+            <input type="number" id="speedXMin" value="0" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>X軸 Max:</label>
+            <input type="number" id="speedXMax" value="100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Min:</label>
+            <input type="number" id="speedYMin" value="0" step="0.5" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Max:</label>
+            <input type="number" id="speedYMax" value="5" step="0.5" onchange="updateGraphRange()">
+          </div>
+        </div>
+        <div class="graph-container" id="speedGraphContainer">
+          <canvas class="graph-canvas" id="speedGraph"></canvas>
+        </div>
+        <div class="graph-controls">
+          <button class="btn" onclick="addSpeedPoint()">+</button>
+          <button class="btn secondary" onclick="resetSpeedMap()">🔄</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <div class="graph-title steering">🎯 操舵マップ</div>
+        <div class="graph-range-controls">
+          <div class="range-input-group">
+            <label>X軸 Min:</label>
+            <input type="number" id="steeringXMin" value="-100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>X軸 Max:</label>
+            <input type="number" id="steeringXMax" value="100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Min:</label>
+            <input type="number" id="steeringYMin" value="-45" step="5" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Max:</label>
+            <input type="number" id="steeringYMax" value="45" step="5" onchange="updateGraphRange()">
+          </div>
+        </div>
+        <div class="graph-container" id="steeringGraphContainer">
+          <canvas class="graph-canvas" id="steeringGraph"></canvas>
+        </div>
+        <div class="graph-controls">
+          <button class="btn" onclick="addSteeringPoint()">+</button>
+          <button class="btn secondary" onclick="resetSteeringMap()">🔄</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; text-align: center;">
+        <button class="btn" onclick="exportMaps()">💾 保存</button>
+        <button class="btn" onclick="importMaps()">📁 読込</button>
+      </div>
+    </div>
+
+    <div class="map-quality-panel">
+      <h3>🎨 マップ表示設定</h3>
+      <div class="quality-label">
+        <span>センサ点密度</span>
+        <span id="densityValue">10</span>
+      </div>
+      <input type="range" class="quality-slider" id="densitySlider" min="1" max="100" value="10" oninput="updateDensity(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>センサ点サイズ</span>
+        <span id="sizeValue">4px</span>
+      </div>
+      <input type="range" class="quality-slider" id="sizeSlider" min="1" max="10" value="4" oninput="updatePointSize(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>線の太さ</span>
+        <span id="lineWidthValue">1px</span>
+      </div>
+      <input type="range" class="quality-slider" id="lineWidthSlider" min="0.5" max="3" step="0.5" value="1" oninput="updateLineWidth(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>過去プロット表示数</span>
+        <span id="pastPlotsValue">5</span>
+      </div>
+      <input type="range" class="quality-slider" id="pastPlotsSlider" min="0" max="20" value="5" oninput="updatePastPlots(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>未来プロット表示数 (0=全区間)</span>
+        <span id="futurePlotsValue">5</span>
+      </div>
+      <input type="range" class="quality-slider" id="futurePlotsSlider" min="0" max="20" value="5" oninput="updateFuturePlots(this.value)">
+    </div>
+    
+    <div class="map-quality-panel">
+      <h3>🗺️ マップ操作設定</h3>
+      <div class="quality-label">
+        <span>ズーム</span>
+        <span id="zoomValue">1.0x</span>
+      </div>
+      <input type="range" class="quality-slider" id="zoomSlider" min="0.5" max="5" step="0.1" value="1" oninput="updateZoom(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>回転角度</span>
+        <span id="rotationValue">0°</span>
+      </div>
+      <input type="range" class="quality-slider" id="rotationSlider" min="0" max="360" step="1" value="0" oninput="updateRotation(this.value)">
+      
+      <div class="map-control-buttons">
+        <button class="btn secondary" onclick="resetView()">🔄 ビューリセット</button>
+        <button class="btn secondary" onclick="resetRotation()">🧭 方角リセット</button>
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <h3>📊 統計情報</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="totalPoints">0</div>
+          <div class="stat-label">総データ数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="trackLength">0m</div>
+          <div class="stat-label">軌跡長</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="maxSpeed">0m/s</div>
+          <div class="stat-label">最大速度</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="avgSpeed">0m/s</div>
+          <div class="stat-label">平均速度</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="canvas-wrapper">
+      <div class="canvas-container">
+        <canvas id="trackCanvas" width="900" height="700"></canvas>
+      </div>
+      
+      <div class="time-control-panel">
+        <h3>⏱️ タイムライン制御</h3>
+        <div class="time-display" id="timeDisplay">時刻: --:--:--.---</div>
+        <div class="time-slider-container">
+          <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="100">
+          <div class="time-ticks" id="timeTicks"></div>
+        </div>
+        <div class="time-info">
+          <span id="startTime">開始: --:--:--.---</span>
+          <span id="endTime">終了: --:--:--.---</span>
+        </div>
+        <div class="playback-controls">
+          <button class="play-btn" id="playBtn" onclick="togglePlayback()">▶ 再生</button>
+          <button class="play-btn" onclick="resetPlayback()">⏮ 最初から</button>
+          <button class="play-btn" onclick="jumpToEnd()">⏭ 最後へ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- テーブルサイドバー -->
+  <div class="table-sidebar" id="tableSidebar">
+    <button class="table-toggle-btn" id="tableToggleBtn" onclick="toggleTableSidebar()">◀</button>
+    <div class="table-resize-handle" id="tableResizeHandle"></div>
+    <div class="table-header">
+      <h3>📊 データテーブル</h3>
+    </div>
+    <div class="table-container" id="tableContainer">
+      <table class="data-table" id="dataTable">
+        <thead>
+          <tr id="tableHeaderRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// グローバル変数
+let csvData = [];
+let headers = [];
+let positions = [];
+let currentTimeIndex = 0;
+let isPlaying = false;
+let playbackInterval = null;
+
+// 車両とコースのスケール（mm単位）
+const VEHICLE_LENGTH = 250;  // mm
+const VEHICLE_WIDTH = 150;   // mm
+const COURSE_WIDTH = 1000;   // mm
+
+// 表示設定
+let sensorDensity = 10;
+let sensorPointSize = 4;
+let sensorLineWidth = 1;
+let pastPlotsCount = 5;
+let futurePlotsCount = 5;  // 新規：未来プロット表示数
+let vehicleSizeMultiplier = 1.8;  // 車両サイズ倍率（デフォルトで1.8倍）
+
+// マップ操作設定
+let mapZoom = 1.0;
+let mapOffsetX = 0;
+let mapOffsetY = 0;
+let mapRotation = 0;  // ラジアン
+let isDraggingMap = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let isDraggingVehicle = false;
+let isDraggingCompass = false;
+let compassX = 0;
+let compassY = 0;
+
+// テーブルサイドバー設定
+let isTableOpen = true;
+let isResizingTable = false;
+let tableStartX = 0;
+let tableStartWidth = 0;
+
+// キャンバスのスケール情報を保存
+let canvasScaleInfo = {
+  minX: 0,
+  minY: 0,
+  scale: 1,
+  margin: 80,
+  centerX: 0,
+  centerY: 0
+};
+
+// センサー取付角度（度）- 車両前方を0度として右回り
+let sensorAngles = {
+  'Fr': 0,
+  'FrRH': 35,
+  'RrRH': 90,
+  'RrLH': 270,
+  'FrLH': 325
+};
+
+// グラフ範囲設定
+let graphRanges = {
+  speed: { xMin: 0, xMax: 100, yMin: 0, yMax: 5 },
+  steering: { xMin: -100, xMax: 100, yMin: -45, yMax: 45 }
+};
+
+let speedMap = [
+  {key: 0, value: 0}, {key: 10, value: 0.2}, {key: 20, value: 0.4},
+  {key: 30, value: 1}, {key: 40, value: 1.5}, {key: 50, value: 2},
+  {key: 60, value: 2.5}, {key: 70, value: 3}, {key: 80, value: 3.5},
+  {key: 90, value: 4}, {key: 100, value: 5}
+];
+let steeringMap = [
+  {key: -100, value: -45}, {key: -50, value: -22.5},
+  {key: 0, value: 0}, {key: 50, value: 22.5}, {key: 100, value: 45}
+];
+
+// センサーごとの色定義
+const sensorColors = {
+  'RrLH': {r: 255, g: 50, b: 150},   // ピンク
+  'FrLH': {r: 100, g: 200, b: 255},  // 水色
+  'Fr': {r: 50, g: 255, b: 50},      // 緑
+  'FrRH': {r: 255, g: 200, b: 50},   // 黄色
+  'RrRH': {r: 255, g: 100, b: 50}    // オレンジ
+};
+
+// グラフ関連変数
+let speedGraph, steeringGraph;
+let speedCtx, steeringCtx;
+let isDragging = false;
+let dragPoint = null;
+let dragGraph = null;
+
+// 初期化
+document.addEventListener('DOMContentLoaded', function() {
+  initializeGraphs();
+  setupEventListeners();
+  setupAccordion();
+  setupTableSidebar();
+  drawAllGraphs();
+});
+
+// テーブルサイドバーのセットアップ
+function setupTableSidebar() {
+  const resizeHandle = document.getElementById('tableResizeHandle');
+  const tableSidebar = document.getElementById('tableSidebar');
+  
+  // リサイズハンドルのイベント
+  resizeHandle.addEventListener('mousedown', (e) => {
+    isResizingTable = true;
+    tableStartX = e.clientX;
+    tableStartWidth = tableSidebar.offsetWidth;
+    e.preventDefault();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (isResizingTable) {
+      const deltaX = tableStartX - e.clientX;
+      const newWidth = Math.max(200, Math.min(800, tableStartWidth + deltaX));
+      tableSidebar.style.width = newWidth + 'px';
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    isResizingTable = false;
+  });
+}
+
+// テーブルサイドバーのトグル
+function toggleTableSidebar() {
+  const tableSidebar = document.getElementById('tableSidebar');
+  const toggleBtn = document.getElementById('tableToggleBtn');
+  isTableOpen = !isTableOpen;
+  
+  if (isTableOpen) {
+    tableSidebar.classList.remove('closed');
+    toggleBtn.textContent = '◀';
+  } else {
+    tableSidebar.classList.add('closed');
+    toggleBtn.textContent = '▶';
+  }
+}
+
+// テーブル表示を更新
+function updateTableDisplay() {
+  if (!csvData.length) return;
+  
+  const headerRow = document.getElementById('tableHeaderRow');
+  const tableBody = document.getElementById('tableBody');
+  
+  // ヘッダーを作成
+  headerRow.innerHTML = '';
+  headers.forEach(header => {
+    const th = document.createElement('th');
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  
+  // データ行を作成
+  tableBody.innerHTML = '';
+  csvData.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    tr.id = 'tableRow' + index;
+    row.forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tableBody.appendChild(tr);
+  });
+  
+  // 現在の行にスクロール
+  scrollToCurrentRow();
+}
+
+// 現在の行にスクロール
+function scrollToCurrentRow() {
+  if (!csvData.length) return;
+  
+  const tableContainer = document.getElementById('tableContainer');
+  const currentRow = document.getElementById('tableRow' + currentTimeIndex);
+  
+  // すべての行から current-row クラスを削除
+  document.querySelectorAll('.data-table tr.current-row').forEach(row => {
+    row.classList.remove('current-row');
+  });
+  
+  if (currentRow) {
+    currentRow.classList.add('current-row');
+    
+    // テーブルの中央にスクロール
+    const containerHeight = tableContainer.clientHeight;
+    const rowTop = currentRow.offsetTop;
+    const rowHeight = currentRow.offsetHeight;
+    const scrollTop = rowTop - (containerHeight / 2) + (rowHeight / 2);
+    
+    tableContainer.scrollTop = scrollTop;
+  }
+}
+
+// アコーディオン機能のセットアップ
+function setupAccordion() {
+  // control-groupのアコーディオン
+  const controlHeaders = document.querySelectorAll('.control-group h3');
+  controlHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+      const content = this.nextElementSibling;
+      content.classList.toggle('collapsed');
+    });
+  });
+  
+  // その他のパネルのアコーディオン
+  const panelHeaders = document.querySelectorAll('.interactive-graph > h3, .map-quality-panel > h3, .stats-panel > h3');
+  panelHeaders.forEach(header => {
+    // h3の次の要素以降をすべてpanel-contentで囲む
+    const panel = header.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'panel-content';
+    
+    // h3の次の要素から全て移動
+    let next = header.nextElementSibling;
+    while (next) {
+      const current = next;
+      next = next.nextElementSibling;
+      wrapper.appendChild(current);
+    }
+    
+    panel.appendChild(wrapper);
+    
+    // クリックイベントを追加
+    header.addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+      wrapper.classList.toggle('collapsed');
+    });
+  });
+}
+
+// グラフ範囲更新
+function updateGraphRange() {
+  graphRanges.speed.xMin = parseFloat(document.getElementById('speedXMin').value);
+  graphRanges.speed.xMax = parseFloat(document.getElementById('speedXMax').value);
+  graphRanges.speed.yMin = parseFloat(document.getElementById('speedYMin').value);
+  graphRanges.speed.yMax = parseFloat(document.getElementById('speedYMax').value);
+  
+  graphRanges.steering.xMin = parseFloat(document.getElementById('steeringXMin').value);
+  graphRanges.steering.xMax = parseFloat(document.getElementById('steeringXMax').value);
+  graphRanges.steering.yMin = parseFloat(document.getElementById('steeringYMin').value);
+  graphRanges.steering.yMax = parseFloat(document.getElementById('steeringYMax').value);
+  
+  drawAllGraphs();
+}
+
+// センサー角度更新
+function updateSensorAngle(sensor, value) {
+  sensorAngles[sensor] = parseFloat(value);
+  document.getElementById(`angle${sensor}`).value = value;
+  document.querySelector(`#angle${sensor}`).previousElementSibling.value = value;
+  
+  if (positions.length > 0) {
+    drawTrack();
+  }
+}
+
+// 密度とサイズ調整
+function updateDensity(value) {
+  sensorDensity = parseInt(value);
+  document.getElementById('densityValue').textContent = value;
+  drawTrack();
+}
+
+function updatePointSize(value) {
+  sensorPointSize = parseInt(value);
+  document.getElementById('sizeValue').textContent = value + 'px';
+  drawTrack();
+}
+
+function updateLineWidth(value) {
+  sensorLineWidth = parseFloat(value);
+  document.getElementById('lineWidthValue').textContent = value + 'px';
+  drawTrack();
+}
+
+function updatePastPlots(value) {
+  pastPlotsCount = parseInt(value);
+  document.getElementById('pastPlotsValue').textContent = value;
+  drawTrack();
+}
+
+function updateFuturePlots(value) {
+  futurePlotsCount = parseInt(value);
+  document.getElementById('futurePlotsValue').textContent = value + (value === 0 ? ' (全区間)' : '');
+  drawTrack();
+}
+
+// マップ操作関数
+function updateZoom(value) {
+  mapZoom = parseFloat(value);
+  document.getElementById('zoomValue').textContent = value + 'x';
+  drawTrack();
+}
+
+function updateRotation(value) {
+  mapRotation = parseFloat(value) * Math.PI / 180;
+  document.getElementById('rotationValue').textContent = value + '°';
+  drawTrack();
+}
+
+function resetView() {
+  mapZoom = 1.0;
+  mapOffsetX = 0;
+  mapOffsetY = 0;
+  mapRotation = 0;
+  document.getElementById('zoomSlider').value = 1.0;
+  document.getElementById('zoomValue').textContent = '1.0x';
+  document.getElementById('rotationSlider').value = 0;
+  document.getElementById('rotationValue').textContent = '0°';
+  drawTrack();
+}
+
+function resetRotation() {
+  mapRotation = 0;
+  document.getElementById('rotationSlider').value = 0;
+  document.getElementById('rotationValue').textContent = '0°';
+  drawTrack();
+}
+
+// グラフ初期化
+function initializeGraphs() {
+  speedGraph = document.getElementById('speedGraph');
+  steeringGraph = document.getElementById('steeringGraph');
+  speedCtx = speedGraph.getContext('2d');
+  steeringCtx = steeringGraph.getContext('2d');
+  
+  const container = document.getElementById('speedGraphContainer');
+  const rect = container.getBoundingClientRect();
+  speedGraph.width = rect.width;
+  speedGraph.height = 240;
+  steeringGraph.width = rect.width;
+  steeringGraph.height = 240;
+  
+  setupGraphEvents();
+}
+
+// グラフイベント設定
+function setupGraphEvents() {
+  speedGraph.addEventListener('mousedown', (e) => handleGraphMouseDown(e, 'speed'));
+  speedGraph.addEventListener('mousemove', (e) => handleGraphMouseMove(e, 'speed'));
+  speedGraph.addEventListener('mouseup', (e) => handleGraphMouseUp(e, 'speed'));
+  speedGraph.addEventListener('dblclick', (e) => handleGraphDoubleClick(e, 'speed'));
+  
+  steeringGraph.addEventListener('mousedown', (e) => handleGraphMouseDown(e, 'steering'));
+  steeringGraph.addEventListener('mousemove', (e) => handleGraphMouseMove(e, 'steering'));
+  steeringGraph.addEventListener('mouseup', (e) => handleGraphMouseUp(e, 'steering'));
+  steeringGraph.addEventListener('dblclick', (e) => handleGraphDoubleClick(e, 'steering'));
+}
+
+// イベントリスナー設定
+function setupEventListeners() {
+  document.getElementById('csvFile').addEventListener('change', handleCSVUpload);
+  document.querySelectorAll('.sensorCheckbox').forEach(cb => {
+    cb.addEventListener('change', drawTrack);
+  });
+  
+  const timeSlider = document.getElementById('timeSlider');
+  timeSlider.addEventListener('input', function() {
+    currentTimeIndex = parseInt(this.value);
+    updateTimeDisplay();
+    drawTrack();
+  });
+  
+  // キャンバスイベントを追加
+  const trackCanvas = document.getElementById('trackCanvas');
+  trackCanvas.addEventListener('mousedown', handleCanvasMouseDown);
+  trackCanvas.addEventListener('mousemove', handleCanvasMouseMove);
+  trackCanvas.addEventListener('mouseup', handleCanvasMouseUp);
+  trackCanvas.addEventListener('wheel', handleCanvasWheel);
+  trackCanvas.addEventListener('mouseleave', handleCanvasMouseUp);
+}
+
+// キャンバスマウスダウン処理
+function handleCanvasMouseDown(e) {
+  if (!positions.length) return;
+  
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  
+  // コンパスをクリックしたか確認
+  const compassRadius = 40;
+  const compassCenterX = canvas.width - 80;
+  const compassCenterY = 80;
+  const distToCompass = Math.sqrt((clickX - compassCenterX) ** 2 + (clickY - compassCenterY) ** 2);
+  
+  if (distToCompass <= compassRadius) {
+    isDraggingCompass = true;
+    compassX = compassCenterX;
+    compassY = compassCenterY;
+    canvas.classList.add('dragging');
+    return;
+  }
+  
+  // 再生中は何もしない
+  if (isPlaying) return;
+  
+  // 自車プロットまたは軌跡ライン近くをクリックしたか確認
+  const clickThreshold = 20; // クリック判定の閾値（ピクセル）
+  let nearVehicleOrTrack = false;
+  
+  // 現在の車両位置との距離をチェック
+  if (currentTimeIndex < positions.length) {
+    const currentPos = positions[currentTimeIndex];
+    const transformedPos = applyTransform(currentPos.x, currentPos.y);
+    const distToVehicle = Math.sqrt((clickX - transformedPos.x) ** 2 + (clickY - transformedPos.y) ** 2);
+    
+    if (distToVehicle <= clickThreshold * 2) {
+      nearVehicleOrTrack = true;
+    }
+  }
+  
+  // 軌跡ライン上をクリックしたかチェック
+  if (!nearVehicleOrTrack) {
+    for (let i = 0; i < Math.min(currentTimeIndex, positions.length - 1); i++) {
+      const p1 = positions[i];
+      const p2 = positions[i + 1];
+      const tp1 = applyTransform(p1.x, p1.y);
+      const tp2 = applyTransform(p2.x, p2.y);
+      
+      const distToLine = pointToLineDistance(clickX, clickY, tp1.x, tp1.y, tp2.x, tp2.y);
+      
+      if (distToLine <= clickThreshold) {
+        nearVehicleOrTrack = true;
+        break;
+      }
+    }
+  }
+  
+  if (nearVehicleOrTrack) {
+    // 自車プロットまたはライン上：車両ドラッグ
+    isDraggingVehicle = true;
+    updateVehiclePositionFromMouse(clickX, clickY);
+  } else {
+    // それ以外：マップドラッグ
+    isDraggingMap = true;
+    dragStartX = clickX;
+    dragStartY = clickY;
+    canvas.classList.add('dragging');
+  }
+}
+
+// 点から線分への最短距離を計算
+function pointToLineDistance(px, py, x1, y1, x2, y2) {
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+  
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+  
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+  
+  let xx, yy;
+  
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+  
+  const dx = px - xx;
+  const dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// キャンバスマウス移動処理
+function handleCanvasMouseMove(e) {
+  if (!positions.length && !isDraggingCompass) return;
+  
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  if (isDraggingCompass) {
+    // コンパスドラッグ：マウス位置からの角度を計算
+    const dx = mouseX - compassX;
+    const dy = mouseY - compassY;
+    const angle = Math.atan2(dy, dx);
+    // atan2は-πからπなので、0から2πに変換してから度に変換
+    let degrees = ((angle * 180 / Math.PI) + 90 + 360) % 360;
+    mapRotation = degrees * Math.PI / 180;
+    document.getElementById('rotationSlider').value = degrees;
+    document.getElementById('rotationValue').textContent = degrees.toFixed(0) + '°';
+    drawTrack();
+  } else if (isDraggingMap) {
+    const deltaX = mouseX - dragStartX;
+    const deltaY = mouseY - dragStartY;
+    mapOffsetX += deltaX;
+    mapOffsetY += deltaY;
+    dragStartX = mouseX;
+    dragStartY = mouseY;
+    drawTrack();
+  } else if (isDraggingVehicle && !isPlaying) {
+    updateVehiclePositionFromMouse(mouseX, mouseY);
+  }
+}
+
+// キャンバスマウスアップ処理
+function handleCanvasMouseUp(e) {
+  const canvas = document.getElementById('trackCanvas');
+  isDraggingMap = false;
+  isDraggingVehicle = false;
+  isDraggingCompass = false;
+  canvas.classList.remove('dragging');
+}
+
+// マウスホイールでズーム
+function handleCanvasWheel(e) {
+  e.preventDefault();
+  const delta = -Math.sign(e.deltaY) * 0.1;
+  mapZoom = Math.max(0.5, Math.min(5, mapZoom + delta));
+  document.getElementById('zoomSlider').value = mapZoom;
+  document.getElementById('zoomValue').textContent = mapZoom.toFixed(1) + 'x';
+  drawTrack();
+}
+
+// マウス位置から最も近い車両位置を更新（ズーム対応版）
+function updateVehiclePositionFromMouse(mouseX, mouseY) {
+  if (!positions.length) return;
+  
+  let minDistance = Infinity;
+  let nearestIndex = 0;
+  
+  // すべてのポジションをチェックするのは重いので、サンプリングして高速化
+  const step = Math.max(1, Math.floor(positions.length / 500));
+    
+  for (let i = 0; i < positions.length; i += step) {
+    const transformedPos = applyTransform(positions[i].x, positions[i].y);
+    const distance = Math.sqrt((mouseX - transformedPos.x) ** 2 + (mouseY - transformedPos.y) ** 2);
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestIndex = i;
+    }
+  }
+  
+  // 周辺を細かくチェック
+  const searchRange = Math.min(50, positions.length);
+  const startIdx = Math.max(0, nearestIndex - searchRange);
+  const endIdx = Math.min(positions.length - 1, nearestIndex + searchRange);
+  
+  for (let i = startIdx; i <= endIdx; i++) {
+    const transformedPos = applyTransform(positions[i].x, positions[i].y);
+    const distance = Math.sqrt((mouseX - transformedPos.x) ** 2 + (mouseY - transformedPos.y) ** 2);
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestIndex = i;
+    }
+  }
+  
+  currentTimeIndex = nearestIndex;
+  document.getElementById('timeSlider').value = currentTimeIndex;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+// 座標変換（ズーム・パン・回転を適用）
+function applyTransform(x, y) {
+  const { minX, minY, scale, margin, centerX, centerY } = canvasScaleInfo;
+  
+  // ワールド座標からキャンバス座標への基本変換
+  let cx = margin + (x - minX) * scale;
+  let cy = margin + (y - minY) * scale;
+  
+  // 中心を原点とする座標系に変換
+  cx -= centerX;
+  cy -= centerY;
+  
+  // 回転を適用
+  const rotatedX = cx * Math.cos(mapRotation) - cy * Math.sin(mapRotation);
+  const rotatedY = cx * Math.sin(mapRotation) + cy * Math.cos(mapRotation);
+  
+  // ズームを適用
+  const zoomedX = rotatedX * mapZoom;
+  const zoomedY = rotatedY * mapZoom;
+  
+  // パンとセンターオフセットを適用
+  const finalX = zoomedX + centerX + mapOffsetX;
+  const finalY = zoomedY + centerY + mapOffsetY;
+  
+  return { x: finalX, y: finalY };
+}
+
+// CSVアップロード処理
+function handleCSVUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const text = event.target.result;
+    const lines = text.trim().split(/\r?\n/);
+    headers = lines[0].split(',');
+    csvData = lines.slice(1).map(line => line.split(','));
+    
+    calculatePositions();
+    setupTimeSlider();
+    updateStats();
+    updateTableDisplay();
+    drawTrack();
+  };
+  reader.readAsText(file);
+}
+
+// 位置計算
+function calculatePositions() {
+  positions = [];
+  let x = 0, y = 0, theta = 0;
+  const scale = 1;
+  
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[headers.indexOf('Thr')]);
+    const str = parseFloat(row[headers.indexOf('Str')]);
+    const dt = i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04;
+    const speed = interpolateMap(speedMap, thr) * 1000;
+    const angle = interpolateMap(steeringMap, str) * Math.PI/180;
+
+    theta += angle * dt;
+    x += speed * dt * scale * Math.cos(theta);
+    y += speed * dt * scale * Math.sin(theta);
+
+    positions.push({x, y, theta, row});
+  });
+}
+
+// UNIX時刻を時:分:秒.ミリ秒形式に変換
+function formatUnixTime(unixTime) {
+  const date = new Date(unixTime * 1000);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+// タイムスライダー設定
+function setupTimeSlider() {
+  const timeSlider = document.getElementById('timeSlider');
+  timeSlider.max = csvData.length - 1;
+  timeSlider.value = csvData.length - 1;
+  currentTimeIndex = csvData.length - 1;
+  
+  if (csvData.length > 0) {
+    const startUnixTime = parseFloat(csvData[0][0]);
+    const endUnixTime = parseFloat(csvData[csvData.length - 1][0]);
+    
+    const startTime = formatUnixTime(startUnixTime);
+    const endTime = formatUnixTime(endUnixTime);
+    
+    document.getElementById('startTime').textContent = `開始: ${startTime}`;
+    document.getElementById('endTime').textContent = `終了: ${endTime}`;
+    
+    generateTimeTicks();
+  }
+  
+  updateTimeDisplay();
+}
+
+// 時刻ティックを生成
+function generateTimeTicks() {
+  const ticksContainer = document.getElementById('timeTicks');
+  ticksContainer.innerHTML = '';
+  
+  const numTicks = 11;
+  
+  for (let i = 0; i < numTicks; i++) {
+    const percentage = i / (numTicks - 1);
+    const dataIndex = Math.floor(percentage * (csvData.length - 1));
+    const unixTime = parseFloat(csvData[dataIndex][0]);
+    const formattedTime = formatUnixTime(unixTime);
+    
+    const tickDiv = document.createElement('div');
+    tickDiv.className = 'time-tick';
+    
+    const tickLine = document.createElement('div');
+    tickLine.className = 'time-tick-line';
+    
+    const tickLabel = document.createElement('div');
+    tickLabel.className = 'time-tick-label';
+    tickLabel.textContent = formattedTime;
+    
+    tickDiv.appendChild(tickLine);
+    tickDiv.appendChild(tickLabel);
+    ticksContainer.appendChild(tickDiv);
+  }
+}
+
+// 時刻表示更新
+function updateTimeDisplay() {
+  if (csvData.length > 0 && currentTimeIndex < csvData.length) {
+    const unixTime = parseFloat(csvData[currentTimeIndex][0]);
+    const formattedTime = formatUnixTime(unixTime);
+    document.getElementById('timeDisplay').textContent = `時刻: ${formattedTime}`;
+    scrollToCurrentRow();
+  }
+}
+
+// 再生制御
+function togglePlayback() {
+  isPlaying = !isPlaying;
+  const playBtn = document.getElementById('playBtn');
+  
+  if (isPlaying) {
+    playBtn.textContent = '⏸ 一時停止';
+    playbackInterval = setInterval(() => {
+      currentTimeIndex++;
+      if (currentTimeIndex >= csvData.length - 1) {
+        currentTimeIndex = csvData.length - 1;
+        togglePlayback();
+        return;
+      }
+      document.getElementById('timeSlider').value = currentTimeIndex;
+      updateTimeDisplay();
+      drawTrack();
+    }, 50);
+  } else {
+    playBtn.textContent = '▶ 再生';
+    if (playbackInterval) {
+      clearInterval(playbackInterval);
+      playbackInterval = null;
+    }
+  }
+}
+
+function resetPlayback() {
+  currentTimeIndex = 0;
+  document.getElementById('timeSlider').value = 0;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+function jumpToEnd() {
+  currentTimeIndex = csvData.length - 1;
+  document.getElementById('timeSlider').value = currentTimeIndex;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+// マウス処理
+function handleGraphMouseDown(e, graphType) {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const point = findNearestPoint(x, y, graphType);
+  if (point && getDistance(x, y, point.canvasX, point.canvasY) < 15) {
+    isDragging = true;
+    dragPoint = point;
+    dragGraph = graphType;
+    e.target.style.cursor = 'grabbing';
+  }
+}
+
+function handleGraphMouseMove(e, graphType) {
+  if (!isDragging || dragGraph !== graphType) return;
+  
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const dataValue = canvasToData(x, y, graphType);
+  if (dataValue) {
+    dragPoint.key = dataValue.x;
+    dragPoint.value = dataValue.y;
+    
+    if (graphType === 'speed') {
+      speedMap.sort((a, b) => a.key - b.key);
+    } else {
+      steeringMap.sort((a, b) => a.key - b.key);
+    }
+    
+    drawAllGraphs();
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+function handleGraphMouseUp(e, graphType) {
+  if (isDragging && dragGraph === graphType) {
+    isDragging = false;
+    dragPoint = null;
+    dragGraph = null;
+    e.target.style.cursor = 'crosshair';
+  }
+}
+
+function handleGraphDoubleClick(e, graphType) {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const dataValue = canvasToData(x, y, graphType);
+  if (dataValue) {
+    if (graphType === 'speed') {
+      speedMap.push({key: dataValue.x, value: dataValue.y});
+      speedMap.sort((a, b) => a.key - b.key);
+    } else {
+      steeringMap.push({key: dataValue.x, value: dataValue.y});
+      steeringMap.sort((a, b) => a.key - b.key);
+    }
+    drawAllGraphs();
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// 座標変換（改善版 - 範囲設定を使用）
+function canvasToData(x, y, graphType) {
+  const canvas = graphType === 'speed' ? speedGraph : steeringGraph;
+  const margin = 50;
+  const width = canvas.width - 2 * margin;
+  const height = canvas.height - 2 * margin;
+  
+  const range = graphType === 'speed' ? graphRanges.speed : graphRanges.steering;
+  
+  const dataX = range.xMin + ((x - margin) / width) * (range.xMax - range.xMin);
+  const dataY = range.yMax - ((y - margin) / height) * (range.yMax - range.yMin);
+  
+  return {
+    x: Math.max(range.xMin, Math.min(range.xMax, dataX)),
+    y: Math.max(range.yMin, Math.min(range.yMax, dataY))
+  };
+}
+
+function dataToCanvas(x, y, graphType) {
+  const canvas = graphType === 'speed' ? speedGraph : steeringGraph;
+  const margin = 50;
+  const width = canvas.width - 2 * margin;
+  const height = canvas.height - 2 * margin;
+  
+  const range = graphType === 'speed' ? graphRanges.speed : graphRanges.steering;
+  
+  const canvasX = margin + ((x - range.xMin) / (range.xMax - range.xMin)) * width;
+  const canvasY = margin + ((range.yMax - y) / (range.yMax - range.yMin)) * height;
+  
+  return {x: canvasX, y: canvasY};
+}
+
+function findNearestPoint(x, y, graphType) {
+  const map = graphType === 'speed' ? speedMap : steeringMap;
+  let nearest = null;
+  let minDistance = Infinity;
+  
+  map.forEach(point => {
+    const canvasPos = dataToCanvas(point.key, point.value, graphType);
+    const distance = getDistance(x, y, canvasPos.x, canvasPos.y);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = point;
+    }
+  });
+  
+  if (nearest) {
+    const canvasPos = dataToCanvas(nearest.key, nearest.value, graphType);
+    nearest.canvasX = canvasPos.x;
+    nearest.canvasY = canvasPos.y;
+  }
+  
+  return nearest;
+}
+
+function getDistance(x1, y1, x2, y2) {
+  return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+}
+
+// グラフ描画
+function drawAllGraphs() {
+  drawGraph('speed');
+  drawGraph('steering');
+}
+
+function drawGraph(graphType) {
+  const canvas = graphType === 'speed' ? speedGraph : steeringGraph;
+  const ctx = graphType === 'speed' ? speedCtx : steeringCtx;
+  const map = graphType === 'speed' ? speedMap : steeringMap;
+  const range = graphType === 'speed' ? graphRanges.speed : graphRanges.steering;
+  
+  const margin = 50;
+  const width = canvas.width - 2 * margin;
+  const height = canvas.height - 2 * margin;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // グリッド描画
+  drawGrid(ctx, canvas, graphType, margin, width, height, range);
+  
+  // 軸ラベル描画
+  drawAxisLabels(ctx, canvas, graphType, margin, width, height, range);
+  
+  // データ線描画
+  ctx.strokeStyle = graphType === 'speed' ? '#ff6b6b' : '#4ecdc4';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  
+  map.forEach((point, index) => {
+    const pos = dataToCanvas(point.key, point.value, graphType);
+    if (index === 0) {
+      ctx.moveTo(pos.x, pos.y);
+    } else {
+      ctx.lineTo(pos.x, pos.y);
+    }
+  });
+  ctx.stroke();
+  
+  // データ点描画
+  map.forEach(point => {
+    const pos = dataToCanvas(point.key, point.value, graphType);
+    ctx.fillStyle = graphType === 'speed' ? '#ff6b6b' : '#4ecdc4';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+function drawGrid(ctx, canvas, graphType, margin, width, height, range) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  
+  // 縦線
+  for (let i = 0; i <= 10; i++) {
+    const x = margin + (i / 10) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, margin);
+    ctx.lineTo(x, margin + height);
+    ctx.stroke();
+  }
+  
+  // 横線
+  for (let i = 0; i <= 10; i++) {
+    const y = margin + (i / 10) * height;
+    ctx.beginPath();
+    ctx.moveTo(margin, y);
+    ctx.lineTo(margin + width, y);
+    ctx.stroke();
+  }
+  
+  // 枠線
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(margin, margin, width, height);
+}
+
+function drawAxisLabels(ctx, canvas, graphType, margin, width, height, range) {
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = 'bold 13px Arial';
+  
+  // X軸ラベル
+  for (let i = 0; i <= 10; i += 2) {
+    const x = margin + (i / 10) * width;
+    const value = range.xMin + (i / 10) * (range.xMax - range.xMin);
+    ctx.textAlign = 'center';
+    ctx.fillText(value.toFixed(0), x, margin + height + 20);
+  }
+  
+  // Y軸ラベル
+  for (let i = 0; i <= 10; i += 2) {
+    const y = margin + ((10 - i) / 10) * height;
+    const value = range.yMin + (i / 10) * (range.yMax - range.yMin);
+    ctx.textAlign = 'right';
+    ctx.fillText(value.toFixed(1), margin - 10, y + 5);
+  }
+  
+  // 軸タイトル
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(graphType === 'speed' ? 'Throttle (%)' : 'Steering (%)', margin + width / 2, canvas.height - 5);
+  
+  ctx.save();
+  ctx.translate(15, margin + height / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(graphType === 'speed' ? 'Speed (m/s)' : 'Angle (deg)', 0, 0);
+  ctx.restore();
+}
+
+// ポイント追加
+function addSpeedPoint() {
+  const range = graphRanges.speed;
+  const newKey = speedMap.length > 0 ? speedMap[speedMap.length - 1].key + 10 : (range.xMin + range.xMax) / 2;
+  const newValue = speedMap.length > 0 ? speedMap[speedMap.length - 1].value + 0.5 : (range.yMin + range.yMax) / 2;
+  speedMap.push({key: Math.min(newKey, range.xMax), value: Math.min(newValue, range.yMax)});
+  speedMap.sort((a, b) => a.key - b.key);
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+function addSteeringPoint() {
+  const range = graphRanges.steering;
+  const newKey = steeringMap.length > 0 ? steeringMap[steeringMap.length - 1].key + 25 : 0;
+  const newValue = steeringMap.length > 0 ? steeringMap[steeringMap.length - 1].value + 11.25 : 0;
+  steeringMap.push({key: Math.min(newKey, range.xMax), value: Math.min(newValue, range.yMax)});
+  steeringMap.sort((a, b) => a.key - b.key);
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+// マップリセット
+function resetSpeedMap() {
+  speedMap = [
+    {key: 0, value: 0}, {key: 10, value: 0.2}, {key: 20, value: 0.4},
+    {key: 30, value: 1}, {key: 40, value: 1.5}, {key: 50, value: 2},
+    {key: 60, value: 2.5}, {key: 70, value: 3}, {key: 80, value: 3.5},
+    {key: 90, value: 4}, {key: 100, value: 5}
+  ];
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+function resetSteeringMap() {
+  steeringMap = [
+    {key: -100, value: -45}, {key: -50, value: -22.5},
+    {key: 0, value: 0}, {key: 50, value: 22.5}, {key: 100, value: 45}
+  ];
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+// マップエクスポート/インポート
+function exportMaps() {
+  const maps = {speedMap, steeringMap, sensorAngles, graphRanges};
+  const dataStr = JSON.stringify(maps, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'minicar_maps_v4.json';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function importMaps() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const maps = JSON.parse(event.target.result);
+        speedMap = maps.speedMap;
+        steeringMap = maps.steeringMap;
+        if (maps.sensorAngles) {
+          sensorAngles = maps.sensorAngles;
+          Object.keys(sensorAngles).forEach(sensor => {
+            document.getElementById(`angle${sensor}`).value = sensorAngles[sensor];
+            document.querySelector(`#angle${sensor}`).previousElementSibling.value = sensorAngles[sensor];
+          });
+        }
+        if (maps.graphRanges) {
+          graphRanges = maps.graphRanges;
+          document.getElementById('speedXMin').value = graphRanges.speed.xMin;
+          document.getElementById('speedXMax').value = graphRanges.speed.xMax;
+          document.getElementById('speedYMin').value = graphRanges.speed.yMin;
+          document.getElementById('speedYMax').value = graphRanges.speed.yMax;
+          document.getElementById('steeringXMin').value = graphRanges.steering.xMin;
+          document.getElementById('steeringXMax').value = graphRanges.steering.xMax;
+          document.getElementById('steeringYMin').value = graphRanges.steering.yMin;
+          document.getElementById('steeringYMax').value = graphRanges.steering.yMax;
+        }
+        drawAllGraphs();
+        calculatePositions();
+        drawTrack();
+      } catch (error) {
+        alert('ファイルの読み込みに失敗しました: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// 統計情報更新
+function updateStats() {
+  if (!csvData.length) return;
+  
+  document.getElementById('totalPoints').textContent = csvData.length;
+  
+  let totalDistance = 0;
+  let maxSpeed = 0;
+  let totalSpeed = 0;
+  
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[headers.indexOf('Thr')]);
+    const speed = interpolateMap(speedMap, thr);
+    const dt = i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04;
+    
+    totalDistance += speed * dt;
+    maxSpeed = Math.max(maxSpeed, speed);
+    totalSpeed += speed;
+  });
+  
+  document.getElementById('trackLength').textContent = totalDistance.toFixed(2) + 'm';
+  document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2) + 'm/s';
+  document.getElementById('avgSpeed').textContent = (totalSpeed / csvData.length).toFixed(2) + 'm/s';
+}
+
+// 軌跡描画（最重要関数）
+function drawTrack() {
+  const canvas = document.getElementById('trackCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!positions.length) return;
+
+  const activeSensors = Array.from(document.querySelectorAll('.sensorCheckbox:checked')).map(cb => cb.value);
+
+  const xs = positions.map(p => p.x);
+  const ys = positions.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  
+  const margin = 80;
+  const scaleX = (canvas.width - 2 * margin) / (maxX - minX + VEHICLE_LENGTH * 2);
+  const scaleY = (canvas.height - 2 * margin) / (maxY - minY + VEHICLE_LENGTH * 2);
+  const scale = Math.min(scaleX, scaleY);
+  
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  
+  // スケール情報を保存（クリック処理で使用）
+  canvasScaleInfo = { minX, minY, scale, margin, centerX, centerY };
+
+  // 変換を適用して描画
+  ctx.save();
+  ctx.translate(centerX + mapOffsetX, centerY + mapOffsetY);
+  ctx.rotate(mapRotation);
+  ctx.scale(mapZoom, mapZoom);
+  ctx.translate(-centerX, -centerY);
+
+  // 背景グリッド
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1 / mapZoom;
+  for(let i = 0; i <= 20; i++){
+    const x = margin + i * (canvas.width - 2 * margin) / 20;
+    ctx.beginPath();
+    ctx.moveTo(x, margin);
+    ctx.lineTo(x, canvas.height - margin);
+    ctx.stroke();
+    
+    const y = margin + i * (canvas.height - 2 * margin) / 20;
+    ctx.beginPath();
+    ctx.moveTo(margin, y);
+    ctx.lineTo(canvas.width - margin, y);
+    ctx.stroke();
+  }
+
+  // 全時刻範囲の軌跡線を描画
+  ctx.strokeStyle = 'rgba(0,200,255,0.5)';
+  ctx.lineWidth = 2 / mapZoom;
+  ctx.beginPath();
+  positions.forEach((p, i) => {
+    const cx = margin + (p.x - minX) * scale;
+    const cy = margin + (p.y - minY) * scale;
+    if (i === 0) {
+      ctx.moveTo(cx, cy);
+    } else {
+      ctx.lineTo(cx, cy);
+    }
+  });
+  ctx.stroke();
+
+  // センサーごとに点と線を描画
+  activeSensors.forEach(name => {
+    const idx = headers.indexOf(name);
+    if (idx < 0) return;
+    
+    const color = sensorColors[name];
+    const sensorAngleRad = (sensorAngles[name] || 0) * Math.PI / 180;
+    
+    let sensorPoints = [];
+    positions.forEach((p, i) => {
+      if (i % sensorDensity !== 0) return;
+      
+      const cx = margin + (p.x - minX) * scale;
+      const cy = margin + (p.y - minY) * scale;
+      const distance = parseFloat(p.row[idx]);
+      
+      const totalAngle = p.theta + sensorAngleRad;
+      const sx = cx + distance * scale * Math.cos(totalAngle);
+      const sy = cy + distance * scale * Math.sin(totalAngle);
+      
+      sensorPoints.push({x: sx, y: sy, index: i});
+    });
+    
+    // 線を描画
+    if (sensorPoints.length > 1) {
+      ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`;
+      ctx.lineWidth = sensorLineWidth / mapZoom;
+      ctx.beginPath();
+      sensorPoints.forEach((point, i) => {
+        if (i === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.stroke();
+    }
+    
+    // センサー点を描画（時刻に基づいて視覚的に変化）
+    sensorPoints.forEach(point => {
+      const timeDiff = point.index - currentTimeIndex;
+      let pointSize = sensorPointSize / mapZoom;
+      let pointColor = color;
+      let alpha = 0.95;
+      
+      if (timeDiff < 0) {
+        // 過去のプロット
+        const pastIndex = Math.abs(timeDiff);
+        
+        if (pastIndex <= pastPlotsCount * sensorDensity) {
+          // 過去pastPlotsCount個のプロット：順に小さくする
+          const ratio = 1 - (pastIndex / (pastPlotsCount * sensorDensity)) * 0.6;
+          pointSize = (sensorPointSize / mapZoom) * ratio;
+          alpha = 0.95 * ratio;
+        } else {
+          // それより過去：小さく灰色
+          pointSize = (sensorPointSize / mapZoom) * 0.3;
+          pointColor = {r: 128, g: 128, b: 128};
+          alpha = 0.4;
+        }
+      } else if (timeDiff > 0) {
+        // 未来のプロット
+        if (futurePlotsCount === 0) {
+          // 0指定の場合は全区間通常サイズ
+          pointSize = sensorPointSize / mapZoom;
+        alpha = 0.7;
+        } else {
+          const futureIndex = timeDiff;
+          if (futureIndex <= futurePlotsCount * sensorDensity) {
+            // 未来futurePlotsCount個のプロット：通常サイズ
+            pointSize = sensorPointSize / mapZoom;
+            alpha = 0.7;
+          } else {
+            // それより未来：小さく灰色
+            pointSize = (sensorPointSize / mapZoom) * 0.3;
+            pointColor = {r: 128, g: 128, b: 128};
+            alpha = 0.4;
+          }
+        }
+      }
+      
+      // ポイント描画
+      const grd = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, pointSize);
+      grd.addColorStop(0, `rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, ${alpha})`);
+      grd.addColorStop(1, `rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, 0)`);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    // 現在時刻のセンサー点を特に目立たせる
+    const currentPoint = sensorPoints.find(p => p.index === currentTimeIndex);
+    if (currentPoint) {
+      // 外側の光る輪
+      const outerGrd = ctx.createRadialGradient(currentPoint.x, currentPoint.y, 0, currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 3);
+      outerGrd.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`);
+      outerGrd.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`);
+      outerGrd.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+      ctx.fillStyle = outerGrd;
+      ctx.beginPath();
+      ctx.arc(currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 中心の明るい点
+      ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+      ctx.beginPath();
+      ctx.arc(currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 白い縁取り
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.lineWidth = 2 / mapZoom;
+      ctx.stroke();
+    }
+  });
+
+  // 現在までの軌跡をハイライト
+  if (currentTimeIndex > 0) {
+    ctx.strokeStyle = 'rgba(0,255,255,0.9)';
+    ctx.lineWidth = 3 / mapZoom;
+    ctx.beginPath();
+    for (let i = 0; i <= currentTimeIndex && i < positions.length; i++) {
+      const p = positions[i];
+      const cx = margin + (p.x - minX) * scale;
+      const cy = margin + (p.y - minY) * scale;
+      if (i === 0) {
+        ctx.moveTo(cx, cy);
+      } else {
+        ctx.lineTo(cx, cy);
+      }
+    }
+    ctx.stroke();
+  }
+
+  // 現在の車両位置を描画
+  if (currentTimeIndex < positions.length) {
+    const currentPos = positions[currentTimeIndex];
+    const cx = margin + (currentPos.x - minX) * scale;
+    const cy = margin + (currentPos.y - minY) * scale;
+    
+    // 距離サークルを描画
+    drawDistanceCircles(ctx, cx, cy, scale);
+    
+    // 車両を描画
+    drawVehicle(ctx, cx, cy, currentPos.theta, scale / mapZoom);
+  }
+
+  ctx.restore();
+  
+  // 変換を適用しない要素（凡例、スケール情報、コンパス）
+  drawLegend(ctx, canvas, activeSensors);
+  drawScaleInfo(ctx, canvas, scale);
+  drawCompass(ctx, canvas);
+}
+
+// コンパス描画
+function drawCompass(ctx, canvas) {
+  const compassX = canvas.width - 80;
+  const compassY = 80;
+  const compassRadius = 40;
+  
+  ctx.save();
+  
+  // 背景円
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.beginPath();
+  ctx.arc(compassX, compassY, compassRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 外枠
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  // 回転を適用
+  ctx.translate(compassX, compassY);
+  ctx.rotate(mapRotation);
+  
+  // 北を指す矢印（赤）
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath();
+  ctx.moveTo(0, -compassRadius * 0.7);
+  ctx.lineTo(-compassRadius * 0.2, 0);
+  ctx.lineTo(0, -compassRadius * 0.3);
+  ctx.lineTo(compassRadius * 0.2, 0);
+  ctx.closePath();
+  ctx.fill();
+  
+  // 南を指す矢印（白）
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(0, compassRadius * 0.7);
+  ctx.lineTo(-compassRadius * 0.2, 0);
+  ctx.lineTo(0, compassRadius * 0.3);
+  ctx.lineTo(compassRadius * 0.2, 0);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.restore();
+  
+  // N文字（常に上向き）
+  ctx.fillStyle = '#ff4444';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', compassX, compassY - compassRadius - 15);
+}
+
+// スケール情報描画
+function drawScaleInfo(ctx, canvas, scale) {
+  const infoX = 20;
+  const infoY = 20;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(infoX - 10, infoY - 10, 220, 130);
+  
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('📏 スケール情報', infoX, infoY + 15);
+  
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px Arial';
+  ctx.fillText(`車両: ${VEHICLE_LENGTH}×${VEHICLE_WIDTH}mm`, infoX, infoY + 40);
+  ctx.fillText(`コース幅: 約${COURSE_WIDTH}mm`, infoX, infoY + 60);
+  ctx.fillText(`表示倍率: ×${(scale * mapZoom).toFixed(3)}`, infoX, infoY + 80);
+  ctx.fillText(`ズーム: ${mapZoom.toFixed(1)}x`, infoX, infoY + 100);
+  
+  const barLength = 100 * scale * mapZoom;
+  ctx.strokeStyle = '#4ecdc4';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(infoX, infoY + 115);
+  ctx.lineTo(infoX + barLength, infoY + 115);
+  ctx.stroke();
+  
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('100mm', infoX + barLength / 2, infoY + 110);
+}
+
+// 凡例描画
+function drawLegend(ctx, canvas, activeSensors) {
+  const legendX = canvas.width - 180;
+  const legendY = 170;  // コンパスの下に配置
+  const lineHeight = 25;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(legendX - 10, legendY - 10, 170, activeSensors.length * lineHeight + 50);
+  
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('センサー凡例', legendX, legendY + 15);
+  
+  ctx.font = '12px Arial';
+  activeSensors.forEach((name, i) => {
+    const color = sensorColors[name];
+    const y = legendY + 40 + i * lineHeight;
+    
+    ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+    ctx.beginPath();
+    ctx.arc(legendX + 10, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#fff';
+    const angle = sensorAngles[name] || 0;
+    ctx.fillText(`${name} (${angle}°)`, legendX + 25, y + 4);
+  });
+}
+
+// 距離サークル描画
+function drawDistanceCircles(ctx, x, y, scale) {
+  const distances = [500, 1000, 1500, 2000, 2500, 3000];
+  
+  ctx.save();
+  distances.forEach((dist, index) => {
+    const radius = dist * scale;
+    ctx.strokeStyle = `rgba(255,255,255,${0.3 - index * 0.07})`;
+    ctx.lineWidth = 1 / mapZoom;
+    ctx.setLineDash([5 / mapZoom, 5 / mapZoom]);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 距離ラベル
+    ctx.fillStyle = `rgba(255,255,255,${0.5 - index * 0.1})`;
+    ctx.font = `${10 / mapZoom}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${dist}mm`, x, y - radius - 3 / mapZoom);
+  });
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// 車両描画
+function drawVehicle(ctx, x, y, theta, scale) {
+  const length = VEHICLE_LENGTH * scale;
+  const width = VEHICLE_WIDTH * scale;
+  
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(theta);
+  
+  ctx.beginPath();
+  ctx.moveTo(length * 0.4, 0);
+  ctx.lineTo(length * 0.1, -width * 0.5);
+  ctx.lineTo(-length * 0.4, -width * 0.5);
+  ctx.lineTo(-length * 0.4, width * 0.5);
+  ctx.lineTo(length * 0.1, width * 0.5);
+  ctx.closePath();
+  
+  ctx.fillStyle = 'rgba(0,255,100,0.7)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(length * 0.1, 0);
+  ctx.lineTo(length * 0.4, 0);
+  ctx.strokeStyle = 'rgba(255,255,0,1)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+// 線形補間
+function interpolateMap(mapArray, value) {
+  if (!mapArray.length) return 0;
+  
+  mapArray.sort((a,b)=>a.key-b.key);
+  if (value <= mapArray[0].key) return mapArray[0].value;
+  if (value >= mapArray[mapArray.length-1].key) return mapArray[mapArray.length-1].value;
+  for(let i=0;i<mapArray.length-1;i++){
+    if(value>=mapArray[i].key && value<=mapArray[i+1].key){
+      const v0=mapArray[i].value,v1=mapArray[i+1].value;
+      const t=(value-mapArray[i].key)/(mapArray[i+1].key-mapArray[i].key);
+      return v0+t*(v1-v0);
+    }
+  }
+  return 0;
+}
+</script>
+</body>
+</html>
