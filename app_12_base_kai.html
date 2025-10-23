@@ -1,0 +1,5732 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>MiniCar SLAM - 高度操作版</title>
+<style>
+* { box-sizing: border-box; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  margin: 0; 
+  padding: 0; 
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  overflow-x: hidden;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 500px;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 2px solid rgba(255,255,255,0.1);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-sidebar {
+  width: 400px;
+  min-width: 200px;
+  max-width: 800px;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+  border-left: 2px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: width 0.3s ease;
+}
+
+.table-sidebar.closed {
+  width: 0 !important;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 15px;
+  background: rgba(255,255,255,0.1);
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header h3 {
+  margin: 0;
+  color: #4ecdc4;
+  font-size: 1.1em;
+}
+
+.table-close-btn {
+  background: rgba(255,100,100,0.6);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.table-close-btn:hover {
+  background: rgba(255,100,100,0.9);
+}
+
+.table-toggle-btn {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 60px;
+  background: rgba(78,205,196,0.8);
+  border: none;
+  border-radius: 5px 0 0 5px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.table-toggle-btn:hover {
+  background: rgba(78,205,196,1);
+  width: 32px;
+}
+
+body.table-closed .table-toggle-btn {
+  display: flex;
+}
+
+.table-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.table-resize-handle:hover {
+  background: rgba(78,205,196,0.5);
+}
+
+/* マーカーパネル（シンプル＆スリム） */
+.marker-panel {
+  background: linear-gradient(135deg, rgba(78,205,196,0.08), rgba(255,107,107,0.08));
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 12px 15px;
+}
+
+.marker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.marker-header h3 {
+  margin: 0;
+  font-size: 0.95em;
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.marker-size-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.marker-size-control input[type="range"] {
+  width: 60px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  outline: none;
+}
+
+.marker-size-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #4ecdc4;
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(78,205,196,0.5);
+}
+
+.marker-size-control input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #4ecdc4;
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 5px rgba(78,205,196,0.5);
+}
+
+.marker-size-control span {
+  font-size: 0.75em;
+  color: rgba(255,255,255,0.8);
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.marker-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.marker-rule {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.2s ease;
+}
+
+.marker-rule:hover {
+  background: rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.marker-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.marker-rule-header input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #4ecdc4;
+}
+
+.marker-rule-header label {
+  flex: 1;
+  font-size: 0.85em;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.marker-rule-header input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+  transition: all 0.2s ease;
+}
+
+.marker-rule-header input[type="color"]:hover {
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.05);
+}
+
+.marker-rule-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 24px;
+}
+
+.marker-rule-control .control-label {
+  font-size: 0.7em;
+  color: rgba(255,255,255,0.6);
+  min-width: 35px;
+}
+
+.marker-rule-control input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  outline: none;
+}
+
+.marker-rule-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.9);
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.marker-rule-control input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.9);
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+}
+
+.marker-rule-control input[type="number"] {
+  width: 45px;
+  padding: 3px 6px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: white;
+  font-size: 0.75em;
+  text-align: center;
+}
+
+.marker-rule-control input[type="number"]:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  background: rgba(0,0,0,0.5);
+}
+
+.marker-rule-control .control-value {
+  font-size: 0.7em;
+  color: rgba(255,255,255,0.8);
+  min-width: 35px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.marker-rule-control > span:not(.control-label):not(.control-value) {
+  font-size: 0.8em;
+  color: rgba(255,255,255,0.4);
+}
+
+.table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #fff;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 2;
+}
+
+.data-table th {
+  padding: 8px 4px;
+  text-align: left;
+  border-bottom: 2px solid rgba(78,205,196,0.5);
+  font-weight: bold;
+  white-space: nowrap;
+  background: rgba(0,0,0,0.95);
+}
+
+.data-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  white-space: nowrap;
+}
+
+.data-table tr:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.data-table tr.current-row {
+  background: rgba(0,255,100,0.3) !important;
+  font-weight: bold;
+}
+
+.data-table tr.current-row td {
+  border-top: 2px solid rgba(0,255,100,0.8);
+  border-bottom: 2px solid rgba(0,255,100,0.8);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2em;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header p {
+  margin: 8px 0 0 0;
+  opacity: 0.8;
+  font-size: 1em;
+}
+
+.control-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.control-group {
+  margin-bottom: 20px;
+}
+
+.control-group h3 {
+  margin: 0 0 12px 0;
+  color: #4ecdc4;
+  font-size: 1.1em;
+  border-bottom: 2px solid rgba(78,205,196,0.3);
+  padding-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.control-group h3:hover {
+  color: #5fddce;
+  background: rgba(78,205,196,0.1);
+  padding-left: 8px;
+  border-radius: 8px;
+}
+
+.control-group h3::after {
+  content: '▼';
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+}
+
+.control-group h3.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+.control-group-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.control-group-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.file-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed rgba(255,255,255,0.3);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.file-input:hover {
+  border-color: #4ecdc4;
+  background: rgba(78,205,196,0.1);
+}
+
+.sensor-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sensor-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+
+.sensor-checkbox:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.sensor-checkbox input {
+  margin-right: 6px;
+  transform: scale(1.1);
+}
+
+.angle-controls {
+  margin-top: 15px;
+}
+
+.angle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+
+.angle-item label {
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.angle-item input[type="number"] {
+  width: 70px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+
+.angle-item input[type="range"] {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.interactive-graph {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 15px;
+}
+
+.graph-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  margin: 12px 0;
+  cursor: crosshair;
+}
+
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+.graph-title {
+  font-size: 1em;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #ff6b6b;
+}
+
+.graph-title.steering,
+.graph-title.radius {
+  color: #4ecdc4;
+}
+
+.graph-range-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+
+.range-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.range-input-group label {
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.range-input-group input {
+  width: 60px;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+
+.graph-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 12px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 11px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn.secondary {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+}
+
+.btn.danger {
+  background: linear-gradient(45deg, #ff416c, #ff4b2b);
+}
+
+.btn.mode-toggle {
+  background: linear-gradient(45deg, #ffa500, #ff8c00);
+  padding: 6px 14px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.btn.mode-toggle.active {
+  background: linear-gradient(45deg, #00d4aa, #00a896);
+  box-shadow: 0 0 15px rgba(0, 212, 170, 0.5);
+}
+
+.map-table-container {
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.map-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.map-table th {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+  padding: 8px 6px;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 2px solid rgba(78, 205, 196, 0.4);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.map-table td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.map-table input {
+  width: 100%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.map-table input:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  background: rgba(78, 205, 196, 0.15);
+}
+
+.map-table .btn-delete {
+  background: linear-gradient(45deg, #ff416c, #ff4b2b);
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.map-table .btn-delete:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 65, 108, 0.5);
+}
+
+.map-table-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0,0,0,0.3);
+  border-radius: 20px;
+  padding: 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.canvas-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+#trackCanvas {
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 15px;
+  background: #111;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  cursor: grab;
+}
+
+#trackCanvas.dragging {
+  cursor: grabbing;
+}
+
+.control-graph-panel {
+  margin-top: 15px;
+  padding: 10px 15px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.control-graph-panel h3 {
+  margin: 0 0 10px 0;
+  color: #4ecdc4;
+  font-size: 0.95em;
+  text-align: center;
+}
+
+.control-graph-container {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: grab;
+}
+
+.control-graph-container.dragging {
+  cursor: grabbing;
+}
+
+.control-graph-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.control-graph-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.control-graph-btn {
+  background: rgba(78,205,196,0.6);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.3s ease;
+}
+
+.control-graph-btn:hover {
+  background: rgba(78,205,196,0.9);
+  transform: translateY(-1px);
+}
+
+.zoom-mode-selector {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.zoom-mode-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.zoom-mode-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.zoom-mode-btn.active {
+  background: rgba(78,205,196,0.8);
+  font-weight: bold;
+}
+
+.sensor-selection {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.sensor-select-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.85em;
+}
+
+.sensor-select-checkbox:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.sensor-select-checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.map-control-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  padding: 4px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, #5fddce, #55b19d);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(78,205,196,0.4);
+}
+
+.btn.secondary {
+  background: rgba(255,255,255,0.1);
+}
+
+.btn.secondary:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.tooltip-icon {
+  display: inline-block;
+  margin-left: 5px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 16px;
+  font-size: 12px;
+  cursor: help;
+  color: #4ecdc4;
+  transition: all 0.3s ease;
+}
+
+.tooltip-icon:hover {
+  background: rgba(78,205,196,0.3);
+  transform: scale(1.2);
+}
+
+.accordion-section {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 0;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.accordion-title {
+  margin: 0;
+  padding: 15px 18px;
+  color: #4ecdc4;
+  font-size: 1.1em;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  background: rgba(255,255,255,0.03);
+}
+
+.accordion-title:hover {
+  background: rgba(78,205,196,0.1);
+}
+
+.accordion-icon {
+  transition: transform 0.3s ease;
+}
+
+.accordion-content {
+  padding: 18px;
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  opacity: 1;
+}
+
+.accordion-content.collapsed {
+  max-height: 0;
+  padding: 0 18px;
+  opacity: 0;
+}
+
+.time-control-panel {
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.time-control-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 8px;
+}
+
+.time-control-panel h3 {
+  margin: 0;
+  color: #4ecdc4;
+  font-size: 1em;
+  flex-shrink: 0;
+}
+
+.time-slider-container {
+  position: relative;
+  padding: 8px 0;
+  margin-bottom: 22px;
+}
+
+.time-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.2);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.time-ticks {
+  position: absolute;
+  width: 100%;
+  height: 18px;
+  top: 18px;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.time-tick {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-tick-line {
+  width: 1px;
+  height: 6px;
+  background: rgba(78,205,196,0.5);
+  margin-bottom: 2px;
+}
+
+.time-tick-label {
+  font-size: 9px;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+}
+
+.time-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(78,205,196,0.8);
+}
+
+.time-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(78,205,196,0.8);
+}
+
+.time-info {
+  display: none;
+}
+
+.time-display {
+  padding: 4px 12px;
+  background: rgba(78,205,196,0.15);
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.playback-controls {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.play-btn {
+  background: linear-gradient(45deg, #00d2ff, #3a47d5);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 15px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.play-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0,210,255,0.4);
+}
+
+.stats-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 12px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+
+.stat-value {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #4ecdc4;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  opacity: 0.8;
+  margin-top: 3px;
+}
+
+.map-quality-panel {
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  padding: 12px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.map-quality-panel h3, .interactive-graph h3, .stats-panel h3 {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.map-quality-panel h3:hover, .interactive-graph h3:hover, .stats-panel h3:hover {
+  background: rgba(78,205,196,0.1);
+}
+
+.map-quality-panel h3::after, .interactive-graph h3::after, .stats-panel h3::after {
+  content: '▼';
+  font-size: 0.8em;
+  transition: transform 0.3s ease;
+}
+
+.map-quality-panel h3.collapsed::after, .interactive-graph h3.collapsed::after, .stats-panel h3.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+.panel-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 3000px;
+  opacity: 1;
+}
+
+.panel-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.quality-slider {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.quality-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.map-control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1400px) {
+  .container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+  }
+  
+  .main-content {
+    height: 40vh;
+  }
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.control-panel, .interactive-graph, .stats-panel {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* スクロールバーカスタマイズ */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(78,205,196,0.6);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(78,205,196,0.8);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="header">
+      <h1>🚗 MiniCar SLAM <span style="font-size: 0.5em; font-weight: 300; opacity: 0.6; letter-spacing: 1px;">v0.1.0.7</span></h1>
+      <p>高度操作版 - Zoom・Rotation・Drag対応</p>
+      <p style="font-size: 0.85em; opacity: 0.7; margin-top: 3px;">Simultaneous Localization And Mapping</p>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <h3>📁 データファイル</h3>
+        <div class="control-group-content">
+        <input type="file" id="csvFile" accept=".csv" class="file-input">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>🔍 有効センサ</h3>
+        <div class="control-group-content">
+        <div class="sensor-controls">
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,50,150,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="RrLH" checked>
+            <span style="color: #ff3296;">●</span> RrLH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(100,200,255,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="FrLH" checked>
+            <span style="color: #64c8ff;">●</span> FrLH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(50,255,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="Fr" checked>
+            <span style="color: #32ff32;">●</span> Fr
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,200,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="FrRH" checked>
+            <span style="color: #ffc832;">●</span> FrRH
+          </label>
+          <label class="sensor-checkbox" style="background: linear-gradient(to right, rgba(255,100,50,0.2), rgba(255,255,255,0.05));">
+            <input type="checkbox" class="sensorCheckbox" value="RrRH" checked>
+            <span style="color: #ff6432;">●</span> RrRH
+          </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>📐 センサー取付角度（車両前方を0度、右回り）</h3>
+        <div class="control-group-content">
+        <div class="angle-controls">
+          <div class="angle-item">
+            <label><span style="color: #32ff32;">●</span> Fr (正面)</label>
+            <input type="range" min="0" max="360" value="0" oninput="updateSensorAngle('Fr', this.value)">
+            <input type="number" id="angleFr" min="0" max="360" value="0" onchange="updateSensorAngle('Fr', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ffc832;">●</span> FrRH (右前)</label>
+            <input type="range" min="0" max="360" value="35" oninput="updateSensorAngle('FrRH', this.value)">
+            <input type="number" id="angleFrRH" min="0" max="360" value="35" onchange="updateSensorAngle('FrRH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ff6432;">●</span> RrRH (右後)</label>
+            <input type="range" min="0" max="360" value="90" oninput="updateSensorAngle('RrRH', this.value)">
+            <input type="number" id="angleRrRH" min="0" max="360" value="90" onchange="updateSensorAngle('RrRH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #ff3296;">●</span> RrLH (左後)</label>
+            <input type="range" min="0" max="360" value="270" oninput="updateSensorAngle('RrLH', this.value)">
+            <input type="number" id="angleRrLH" min="0" max="360" value="270" onchange="updateSensorAngle('RrLH', this.value)">°
+          </div>
+          <div class="angle-item">
+            <label><span style="color: #64c8ff;">●</span> FrLH (左前)</label>
+            <input type="range" min="0" max="360" value="325" oninput="updateSensorAngle('FrLH', this.value)">
+            <input type="number" id="angleFrLH" min="0" max="360" value="325" onchange="updateSensorAngle('FrLH', this.value)">°
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="interactive-graph">
+      <h3>⚙️ インタラクティブマップ調整</h3>
+      
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(78,205,196,0.1); border-radius: 8px;">
+        <label style="font-size: 0.9em; display: block; margin-bottom: 5px; color: #4ecdc4; font-weight: bold;">🚗 ホイールベース (mm)</label>
+        <div class="slider-container">
+          <input type="range" min="50" max="500" step="10" value="150" oninput="updateWheelbase(this.value)" style="flex: 1;">
+          <input type="number" id="wheelbaseValue" min="50" max="500" step="10" value="150" onchange="updateWheelbase(this.value)" style="width: 70px;">
+        </div>
+      </div>
+      
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(255,184,77,0.1); border-radius: 8px; border: 1px solid rgba(255,184,77,0.3);">
+        <h4 style="margin: 0 0 10px 0; color: #ffb84d; font-size: 0.95em;">⚙️ キャリブレーション</h4>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          📏 速度スケール係数
+          <span class="tooltip-icon" title="速度の全体的な倍率を調整します。コース全体が大きすぎる/小さすぎる場合に調整してください。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="10" step="0.1" value="1.0" oninput="updateSpeedScale(this.value)" style="flex: 1;">
+          <input type="number" id="speedScaleValue" min="0.1" max="10" step="0.1" value="1.0" onchange="updateSpeedScale(this.value)" style="width: 70px;">
+        </div>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          🎯 旋回半径ゲイン
+          <span class="tooltip-icon" title="旋回半径の補正係数です。カーブが緩すぎる場合は小さく、きつすぎる場合は大きく調整してください。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="5" step="0.1" value="1.0" oninput="updateRadiusGain(this.value)" style="flex: 1;">
+          <input type="number" id="radiusGainValue" min="0.1" max="5" step="0.1" value="1.0" onchange="updateRadiusGain(this.value)" style="width: 70px;">
+        </div>
+        
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          ⏱️ 時間スケール
+          <span class="tooltip-icon" title="時間の流れを調整します。通常は1.0のままで問題ありません。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="0.1" max="5" step="0.1" value="1.0" oninput="updateTimeScale(this.value)" style="flex: 1;">
+          <input type="number" id="timeScaleValue" min="0.1" max="5" step="0.1" value="1.0" onchange="updateTimeScale(this.value)" style="width: 70px;">
+        </div>
+
+        <label style="font-size: 0.85em; display: flex; align-items: center; margin-bottom: 3px;">
+          🔄 ジャイロZ軸オフセット
+          <span class="tooltip-icon" title="GyrZの静止時オフセットを補正します。右旋回ドリフトは正の値、左は負の値を入力。">ⓘ</span>
+        </label>
+        <div class="slider-container" style="margin-bottom: 12px;">
+          <input type="range" min="-10" max="10" step="0.01" value="0.0" oninput="updateGyroZOffset(this.value)" style="flex: 1;">
+          <input type="number" id="gyroZOffsetValue" min="-10" max="10" step="0.01" value="0.0" onchange="updateGyroZOffset(this.value)" style="width: 70px;">
+        </div>
+        
+        <button class="btn primary" onclick="recalculatePositions()" style="width: 100%; font-size: 0.85em;">💫 位置を再計算</button>
+        <button class="btn secondary" onclick="resetCalibration()" style="width: 100%; font-size: 0.85em; margin-top: 5px;">🔄 リセット</button>
+      </div>
+      
+      <div class="control-group" style="margin-bottom: 15px; padding: 10px; background: rgba(138,201,38,0.1); border-radius: 8px; border: 1px solid rgba(138,201,38,0.3);">
+        <h4 style="margin: 0 0 10px 0; color: #8ac926; font-size: 0.95em;">📐 実コース寸法</h4>
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">縦線の長さ (m)</label>
+        <input type="number" id="courseVertical" min="1" max="100" step="0.5" value="15" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">横線の長さ (m)</label>
+        <input type="number" id="courseHorizontal" min="1" max="100" step="0.5" value="4" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <label style="font-size: 0.85em; display: block; margin-bottom: 3px;">道幅 (m)</label>
+        <input type="number" id="courseWidth" min="0.5" max="10" step="0.1" value="1.5" style="width: 100%; margin-bottom: 8px; padding: 4px;">
+        
+        <button class="btn" onclick="showCourseReference()" style="width: 100%; font-size: 0.85em;">📊 コース参照線を表示</button>
+      </div>
+      
+      <div>
+        <div class="graph-title">🚗 車速マップ (Thr% → m/s)</div>
+        
+        <div style="text-align: center; margin-bottom: 8px;">
+          <button class="btn mode-toggle" id="speedModeBtn" onclick="toggleSpeedMapMode()">📊 グラフモード</button>
+        </div>
+        
+        <!-- グラフモード -->
+        <div id="speedGraphMode">
+        <div class="graph-range-controls">
+          <div class="range-input-group">
+            <label>X軸 Min:</label>
+            <input type="number" id="speedXMin" value="0" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>X軸 Max:</label>
+            <input type="number" id="speedXMax" value="100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Min:</label>
+            <input type="number" id="speedYMin" value="0" step="0.5" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Max:</label>
+            <input type="number" id="speedYMax" value="5" step="0.5" onchange="updateGraphRange()">
+          </div>
+        </div>
+        <div class="graph-container" id="speedGraphContainer">
+          <canvas class="graph-canvas" id="speedGraph"></canvas>
+        </div>
+        <div class="graph-controls">
+          <button class="btn" onclick="addSpeedPoint()">+</button>
+          <button class="btn secondary" onclick="resetSpeedMap()">🔄</button>
+          </div>
+        </div>
+        
+        <!-- テーブルモード -->
+        <div id="speedTableMode" style="display: none;">
+          <div class="map-table-container">
+            <table class="map-table">
+              <thead>
+                <tr>
+                  <th style="width: 35%;">Throttle (%)</th>
+                  <th style="width: 35%;">Speed (m/s)</th>
+                  <th style="width: 30%;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="speedTableBody">
+              </tbody>
+            </table>
+          </div>
+          <div class="map-table-actions">
+            <button class="btn" onclick="addSpeedPointTable()">➕ ポイント追加</button>
+            <button class="btn secondary" onclick="resetSpeedMap()">🔄 リセット</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <div class="graph-title radius">🎯 旋回半径マップ (Str% → mm)</div>
+        
+        <div style="text-align: center; margin-bottom: 8px;">
+          <button class="btn mode-toggle" id="radiusModeBtn" onclick="toggleRadiusMapMode()">📊 グラフモード</button>
+        </div>
+        
+        <!-- グラフモード -->
+        <div id="radiusGraphMode">
+        <div class="graph-range-controls">
+          <div class="range-input-group">
+            <label>X軸 Min:</label>
+              <input type="number" id="radiusXMin" value="-100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>X軸 Max:</label>
+              <input type="number" id="radiusXMax" value="100" step="10" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Min:</label>
+              <input type="number" id="radiusYMin" value="0" step="500" onchange="updateGraphRange()">
+          </div>
+          <div class="range-input-group">
+            <label>Y軸 Max:</label>
+              <input type="number" id="radiusYMax" value="100000" step="5000" onchange="updateGraphRange()">
+          </div>
+        </div>
+          <div class="graph-container" id="radiusGraphContainer">
+            <canvas class="graph-canvas" id="radiusGraph"></canvas>
+        </div>
+        <div class="graph-controls">
+            <button class="btn" onclick="addRadiusPoint()">+</button>
+            <button class="btn secondary" onclick="resetRadiusMap()">🔄</button>
+          </div>
+        </div>
+        
+        <!-- テーブルモード -->
+        <div id="radiusTableMode" style="display: none;">
+          <div style="text-align: center; font-size: 0.8em; color: #4ecdc4; margin-bottom: 8px; padding: 6px; background: rgba(78, 205, 196, 0.1); border-radius: 4px;">
+            💡 0〜100の正の値を編集すると、自動的に-100〜0の負の値にも反映されます
+          </div>
+          <div class="map-table-container">
+            <table class="map-table">
+              <thead>
+                <tr>
+                  <th style="width: 35%;">Steering (%)</th>
+                  <th style="width: 35%;">Radius (mm)</th>
+                  <th style="width: 30%;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="radiusTableBody">
+              </tbody>
+            </table>
+          </div>
+          <div class="map-table-actions">
+            <button class="btn" onclick="addRadiusPointTable()">➕ ポイント追加</button>
+            <button class="btn secondary" onclick="resetRadiusMap()">🔄 リセット</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <div class="graph-title" style="color: #ffa500;">⚡ 速度依存係数マップ (Thr% → 係数)</div>
+        
+        <div style="text-align: center; margin-bottom: 8px;">
+          <button class="btn mode-toggle" id="speedCoefModeBtn" onclick="toggleSpeedCoefMapMode()">📊 グラフモード</button>
+        </div>
+        
+        <!-- グラフモード -->
+        <div id="speedCoefGraphMode">
+          <div class="graph-range-controls">
+            <div class="range-input-group">
+              <label>X軸 Min:</label>
+              <input type="number" id="speedCoefXMin" value="0" step="10" onchange="updateGraphRange()">
+            </div>
+            <div class="range-input-group">
+              <label>X軸 Max:</label>
+              <input type="number" id="speedCoefXMax" value="100" step="10" onchange="updateGraphRange()">
+            </div>
+            <div class="range-input-group">
+              <label>Y軸 Min:</label>
+              <input type="number" id="speedCoefYMin" value="0.5" step="0.1" onchange="updateGraphRange()">
+            </div>
+            <div class="range-input-group">
+              <label>Y軸 Max:</label>
+              <input type="number" id="speedCoefYMax" value="3.0" step="0.1" onchange="updateGraphRange()">
+            </div>
+          </div>
+          <div class="graph-container" id="speedCoefGraphContainer">
+            <canvas class="graph-canvas" id="speedCoefGraph"></canvas>
+          </div>
+          <div class="graph-controls">
+            <button class="btn" onclick="addSpeedCoefPoint()">+</button>
+            <button class="btn secondary" onclick="resetSpeedCoefMap()">🔄</button>
+          </div>
+        </div>
+        
+        <!-- テーブルモード -->
+        <div id="speedCoefTableMode" style="display: none;">
+          <div style="text-align: center; font-size: 0.8em; color: #ffa500; margin-bottom: 8px; padding: 6px; background: rgba(255, 165, 0, 0.1); border-radius: 4px;">
+            💡 速度が高いほど旋回半径が大きくなります（アンダーステア）
+          </div>
+          <div class="map-table-container">
+            <table class="map-table">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">Throttle (%)</th>
+                  <th style="width: 35%;">係数</th>
+                  <th style="width: 25%;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="speedCoefTableBody">
+              </tbody>
+            </table>
+          </div>
+          <div class="map-table-actions">
+            <button class="btn" onclick="addSpeedCoefPointTable()">➕ ポイント追加</button>
+            <button class="btn secondary" onclick="resetSpeedCoefMap()">🔄 リセット</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; text-align: center;">
+        <button class="btn" onclick="exportMaps()">💾 保存</button>
+        <button class="btn" onclick="importMaps()">📁 読込</button>
+      </div>
+    </div>
+
+    <div class="map-quality-panel">
+      <h3>🎨 マップ表示設定</h3>
+      <div class="quality-label">
+        <span>センサ点密度</span>
+        <span id="densityValue">1</span>
+      </div>
+      <input type="range" class="quality-slider" id="densitySlider" min="1" max="100" value="1" oninput="updateDensity(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>センサ点サイズ</span>
+        <span id="sizeValue">4px</span>
+      </div>
+      <input type="range" class="quality-slider" id="sizeSlider" min="1" max="10" value="4" oninput="updatePointSize(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>線の太さ</span>
+        <span id="lineWidthValue">1px</span>
+      </div>
+      <input type="range" class="quality-slider" id="lineWidthSlider" min="0.5" max="3" step="0.5" value="1" oninput="updateLineWidth(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>過去プロット表示数</span>
+        <span id="pastPlotsValue">5</span>
+      </div>
+      <input type="range" class="quality-slider" id="pastPlotsSlider" min="0" max="20" value="5" oninput="updatePastPlots(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>未来プロット表示数 (0=全区間)</span>
+        <span id="futurePlotsValue">5</span>
+      </div>
+      <input type="range" class="quality-slider" id="futurePlotsSlider" min="0" max="20" value="5" oninput="updateFuturePlots(this.value)">
+    </div>
+    
+    <div class="map-quality-panel">
+      <h3>🗺️ マップ操作設定</h3>
+      <div class="quality-label">
+        <span>ズーム</span>
+        <span id="zoomValue">1.0x</span>
+      </div>
+      <input type="range" class="quality-slider" id="zoomSlider" min="0.1" max="10" step="0.1" value="1" oninput="updateZoom(this.value)">
+      
+      <div class="quality-label" style="margin-top: 12px;">
+        <span>回転角度</span>
+        <span id="rotationValue">0°</span>
+      </div>
+      <input type="range" class="quality-slider" id="rotationSlider" min="0" max="360" step="1" value="0" oninput="updateRotation(this.value)">
+      
+      <div class="map-control-buttons">
+        <button class="btn secondary" onclick="resetView()">🔄 ビューリセット</button>
+        <button class="btn secondary" onclick="resetRotation()">🧭 方角リセット</button>
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <h3>📊 統計情報</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="totalPoints">0</div>
+          <div class="stat-label">総データ数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="trackLength">0m</div>
+          <div class="stat-label">軌跡長</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="maxSpeed">0m/s</div>
+          <div class="stat-label">最大速度</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="avgSpeed">0m/s</div>
+          <div class="stat-label">平均速度</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="canvas-wrapper">
+      <div class="time-control-panel">
+        <div class="time-control-header">
+          <h3>⏱️ タイムライン制御</h3>
+          <div class="time-display" id="timeDisplay">時刻: --:--:--.---</div>
+          <div class="playback-controls">
+            <button class="play-btn" id="playBtn" onclick="togglePlayback()">▶ 再生</button>
+            <button class="play-btn" onclick="resetPlayback()">⏮ 最初から</button>
+            <button class="play-btn" onclick="jumpToEnd()">⏭ 最後へ</button>
+            <button class="play-btn" onclick="addAnnotation()" style="background: linear-gradient(45deg, #ffd700, #ff8c00);" title="現在位置に注釈を追加">📝 注釈追加</button>
+          </div>
+        </div>
+        <div class="time-slider-container">
+          <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="100">
+          <div class="time-ticks" id="timeTicks"></div>
+        </div>
+        <div class="time-info">
+          <span id="startTime">開始: --:--:--.---</span>
+          <span id="endTime">終了: --:--:--.---</span>
+        </div>
+      </div>
+      
+      <div class="canvas-container">
+        <canvas id="trackCanvas" width="900" height="700"></canvas>
+      </div>
+      
+      <div class="control-graph-panel">
+        <h3>🎮 制御入力の時系列変化</h3>
+        <div class="control-graph-container" id="controlGraphContainer">
+          <canvas class="control-graph-canvas" id="controlGraph"></canvas>
+        </div>
+        <div class="control-graph-controls">
+          <div class="zoom-mode-selector">
+            <button class="zoom-mode-btn active" id="zoomModeX" onclick="setControlGraphZoomMode('x')">X軸</button>
+            <button class="zoom-mode-btn" id="zoomModeY" onclick="setControlGraphZoomMode('y')">Y軸</button>
+            <button class="zoom-mode-btn" id="zoomModeBoth" onclick="setControlGraphZoomMode('both')">両軸</button>
+          </div>
+          <button class="control-graph-btn" onclick="zoomInControlGraph()">🔍+ ズームイン</button>
+          <button class="control-graph-btn" onclick="zoomOutControlGraph()">🔍- ズームアウト</button>
+          <button class="control-graph-btn" onclick="resetControlGraphView()">🔄 全体表示</button>
+        </div>
+      </div>
+      
+      <div class="control-graph-panel">
+        <h3>📡 超音波センサ値の時系列変化</h3>
+        <div class="sensor-selection" id="sensorSelection">
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="RrLH" checked onchange="drawSensorGraph()">
+            <span style="color: #ff3296;">● RrLH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="FrLH" checked onchange="drawSensorGraph()">
+            <span style="color: #64c8ff;">● FrLH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="Fr" checked onchange="drawSensorGraph()">
+            <span style="color: #32ff32;">● Fr</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="FrRH" checked onchange="drawSensorGraph()">
+            <span style="color: #ffc832;">● FrRH</span>
+          </label>
+          <label class="sensor-select-checkbox">
+            <input type="checkbox" value="RrRH" checked onchange="drawSensorGraph()">
+            <span style="color: #ff6432;">● RrRH</span>
+          </label>
+        </div>
+        <div class="control-graph-container" id="sensorGraphContainer">
+          <canvas class="control-graph-canvas" id="sensorGraph"></canvas>
+        </div>
+        <div class="control-graph-controls">
+          <div class="zoom-mode-selector">
+            <button class="zoom-mode-btn active" id="sensorZoomModeX" onclick="setSensorGraphZoomMode('x')">X軸</button>
+            <button class="zoom-mode-btn" id="sensorZoomModeY" onclick="setSensorGraphZoomMode('y')">Y軸</button>
+            <button class="zoom-mode-btn" id="sensorZoomModeBoth" onclick="setSensorGraphZoomMode('both')">両軸</button>
+          </div>
+          <button class="control-graph-btn" onclick="zoomInSensorGraph()">🔍+ ズームイン</button>
+          <button class="control-graph-btn" onclick="zoomOutSensorGraph()">🔍- ズームアウト</button>
+          <button class="control-graph-btn" onclick="resetSensorGraphView()">🔄 全体表示</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- テーブルサイドバー -->
+  <div class="table-sidebar" id="tableSidebar">
+    <div class="table-resize-handle" id="tableResizeHandle"></div>
+    
+    <!-- マーカー設定パネル -->
+    <div class="marker-panel">
+      <div class="marker-header">
+        <h3>📍 マーカー</h3>
+        <div class="marker-size-control">
+          <input type="range" id="markerSizeSlider" min="3" max="20" step="1" value="6" oninput="updateMarkerSize(this.value)">
+          <span id="markerSizeValue">6</span>
+        </div>
+      </div>
+      
+      <div class="marker-rules">
+        <!-- ルール① -->
+        <div class="marker-rule">
+          <div class="marker-rule-header">
+            <input type="checkbox" id="rule1MarkerEnabled" checked onchange="toggleMarker('rule1', this.checked)">
+            <label for="rule1MarkerEnabled">🚧 狭い道</label>
+            <input type="color" id="rule1ColorPicker" value="#808080" onchange="updateMarkerColor('rule1', this.value)">
+          </div>
+          <div class="marker-rule-control">
+            <span class="control-label">閾値</span>
+            <input type="range" id="rule1ThresholdSlider" min="50" max="1000" step="50" value="300" oninput="updateMarkerThreshold('rule1', this.value)">
+            <span class="control-value" id="rule1ThresholdValue">300</span>
+          </div>
+        </div>
+        
+        <!-- ルール② -->
+        <div class="marker-rule">
+          <div class="marker-rule-header">
+            <input type="checkbox" id="rule2MarkerEnabled" checked onchange="toggleMarker('rule2', this.checked)">
+            <label for="rule2MarkerEnabled">🔄 大操舵</label>
+            <input type="color" id="rule2ColorPicker" value="#FF6B6B" onchange="updateMarkerColor('rule2', this.value)">
+          </div>
+          <div class="marker-rule-control">
+            <span class="control-label">範囲</span>
+            <input type="number" id="rule2MinValue" value="90" min="0" max="100" onchange="updateMarkerRange('rule2')">
+            <span>-</span>
+            <input type="number" id="rule2MaxValue" value="100" min="0" max="100" onchange="updateMarkerRange('rule2')">
+          </div>
+        </div>
+        
+        <!-- ルール③ -->
+        <div class="marker-rule">
+          <div class="marker-rule-header">
+            <input type="checkbox" id="rule3MarkerEnabled" checked onchange="toggleMarker('rule3', this.checked)">
+            <label for="rule3MarkerEnabled">⚡ 高駆動</label>
+            <input type="color" id="rule3ColorPicker" value="#4ECDC4" onchange="updateMarkerColor('rule3', this.value)">
+          </div>
+          <div class="marker-rule-control">
+            <span class="control-label">範囲</span>
+            <input type="number" id="rule3MinValue" value="80" min="0" max="100" onchange="updateMarkerRange('rule3')">
+            <span>-</span>
+            <input type="number" id="rule3MaxValue" value="100" min="0" max="100" onchange="updateMarkerRange('rule3')">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="table-header">
+      <h3>📊 データテーブル</h3>
+      <button class="table-close-btn" onclick="toggleTableSidebar()">✕</button>
+    </div>
+    <div class="table-container" id="tableContainer">
+      <table class="data-table" id="dataTable">
+        <thead>
+          <tr id="tableHeaderRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- テーブル開くボタン（bodyの直下） -->
+<button class="table-toggle-btn" id="tableToggleBtn" onclick="toggleTableSidebar()">◀</button>
+
+<script>
+// グローバル変数
+let csvData = [];
+let headers = [];
+let positions = [];
+let currentTimeIndex = 0;
+let isPlaying = false;
+let playbackInterval = null;
+
+// 車両とコースのスケール（mm単位）
+const VEHICLE_LENGTH = 250;  // mm
+const VEHICLE_WIDTH = 150;   // mm
+const COURSE_WIDTH = 1000;   // mm
+
+// 表示設定
+let sensorDensity = 1;
+let sensorPointSize = 4;
+let sensorLineWidth = 1;
+let pastPlotsCount = 5;
+let futurePlotsCount = 5;  // 新規：未来プロット表示数
+let vehicleSizeMultiplier = 1.8;  // 車両サイズ倍率（デフォルトで1.8倍）
+
+// 車両パラメータ
+let wheelbase = 0.15;  // ホイールベース（m）デフォルト: 150mm
+
+// キャリブレーションパラメータ
+let speedScale = 1.0;     // 速度スケール係数
+let radiusGain = 1.0;     // 旋回半径ゲイン
+let timeScale = 1.0;      // 時間スケール
+let gyroZOffset = 0.0;    // ジャイロZ軸オフセット (dps: degrees per second)
+
+// コース寸法の参照線を表示するフラグ
+let showCourseRef = false;
+
+// メディアンフィルタ
+let medianFilterEnabled = false;
+let filteredData = [];  // フィルタ済みデータ
+
+// マップ操作設定
+let mapZoom = 1.0;
+let mapOffsetX = 0;
+let mapOffsetY = 0;
+let mapRotation = 0;  // ラジアン
+let isDraggingMap = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let isDraggingVehicle = false;
+let isDraggingCompass = false;
+let compassX = 0;
+let compassY = 0;
+
+// テーブルサイドバー設定
+let isTableOpen = true;
+let isResizingTable = false;
+let tableStartX = 0;
+let tableStartWidth = 0;
+
+// 制御グラフ操作設定
+let controlGraphZoomX = 1.0;
+let controlGraphZoomY = 1.0;
+let controlGraphOffsetX = 0;
+let controlGraphOffsetY = 0;
+let isDraggingControlGraph = false;
+let controlGraphDragStartX = 0;
+let controlGraphDragStartY = 0;
+let controlGraphZoomMode = 'x'; // 'x', 'y', 'both'
+
+// センサグラフ操作設定
+let sensorGraph, sensorCtx;
+let sensorGraphZoomX = 1.0;
+let sensorGraphZoomY = 1.0;
+let sensorGraphOffsetX = 0;
+let sensorGraphOffsetY = 0;
+let isDraggingSensorGraph = false;
+let sensorGraphDragStartX = 0;
+let sensorGraphDragStartY = 0;
+let sensorGraphZoomMode = 'x'; // 'x', 'y', 'both'
+
+// キャンバスのスケール情報を保存
+let canvasScaleInfo = {
+  minX: 0,
+  minY: 0,
+  scale: 1,
+  margin: 80,
+  centerX: 0,
+  centerY: 0
+};
+
+// センサー取付角度（度）- 車両前方を0度として右回り
+let sensorAngles = {
+  'Fr': 0,
+  'FrRH': 35,
+  'RrRH': 90,
+  'RrLH': 270,
+  'FrLH': 325
+};
+
+// グラフ範囲設定
+let graphRanges = {
+  speed: { xMin: 0, xMax: 100, yMin: 0, yMax: 5 },      // 速度マップ: 0-5m/s
+  radius: { xMin: -100, xMax: 100, yMin: 0, yMax: 10000 }, // 旋回半径: 0-10000mm（実測データに合わせて調整）
+  speedCoef: { xMin: 0, xMax: 100, yMin: 0.5, yMax: 4.0 }  // 速度依存係数: 0.5-4.0（実測データに合わせて調整）
+};
+
+// 実測データに基づく速度マップ（スロットル% → 速度 m/s）
+// 実測: Thr30=200mm, Thr50=700mm, Thr70=880mm, Thr80=1150mm, Thr90=1350mm, Thr100=1750mm
+// 0.04秒間隔で測定と仮定し、速度 = 距離/時間 で計算
+let speedMap = [
+  {key: 0, value: 0},     // 停止
+  {key: 10, value: 0.1}, // 推定値
+  {key: 20, value: 0.2}, // 推定値
+  {key: 30, value: 0.5}, // 実測: 200mm/0.04s = 5m/s → 0.5m/s（スケール調整）
+  {key: 40, value: 0.6}, // 推定値
+  {key: 50, value: 1.75}, // 実測: 700mm/0.04s = 17.5m/s → 1.75m/s
+  {key: 60, value: 2.0}, // 推定値
+  {key: 70, value: 2.2}, // 実測: 880mm/0.04s = 22m/s → 2.2m/s
+  {key: 80, value: 2.875}, // 実測: 1150mm/0.04s = 28.75m/s → 2.875m/s
+  {key: 90, value: 3.375}, // 実測: 1350mm/0.04s = 33.75m/s → 3.375m/s
+  {key: 100, value: 4.375} // 実測: 1750mm/0.04s = 43.75m/s → 4.375m/s
+];
+// 実測データに基づく旋回半径マップ（舵角% → 旋回半径 mm）
+// 実測データから外挿して作成
+let radiusMap = [
+  {key: -100, value: 450},  // 実測: Str-100, Thr30-50で450-500mm → 最小値450mm
+  {key: -90, value: 500},  // 推定値
+  {key: -80, value: 600},  // 推定値
+  {key: -70, value: 900},  // 実測: Str-70, Thr50で900mm
+  {key: -60, value: 1200}, // 推定値
+  {key: -50, value: 1800}, // 実測: Str-50, Thr50で1800mm
+  {key: -40, value: 2500}, // 推定値
+  {key: -30, value: 3500}, // 推定値
+  {key: -20, value: 5000}, // 推定値
+  {key: -10, value: 8000}, // 推定値
+  {key: 0, value: 100000}, // 直進
+  {key: 10, value: 8000},  // 推定値（左右対称）
+  {key: 20, value: 5000},  // 推定値
+  {key: 30, value: 3500},  // 推定値
+  {key: 40, value: 2500},  // 推定値
+  {key: 50, value: 1800},  // 実測: Str50, Thr50で1800mm
+  {key: 60, value: 1200},  // 推定値
+  {key: 70, value: 900},   // 実測: Str70, Thr50で900mm
+  {key: 80, value: 600},   // 推定値
+  {key: 90, value: 500},   // 推定値
+  {key: 100, value: 450}   // 実測: Str100, Thr30-50で450-500mm → 最小値450mm
+];
+
+// 実測データに基づく速度依存係数マップ（Throttle% → 旋回半径補正係数）
+// 実測データ分析：
+// Str-100: Thr30=450mm, Thr50=500mm, Thr70=650mm, Thr80=700mm, Thr90=1200mm, Thr100=1500mm
+// Str-70: Thr50=900mm, Thr80=1000mm
+// Str-50: Thr50=1800mm, Thr80=3000mm
+// 速度が上がると旋回半径が大きくなる（アンダーステア）特性を反映
+let radiusSpeedCoefMap = [
+  {key: 0,   value: 1.0},    // 停止：設計通り
+  {key: 10,  value: 1.0},    // 極低速：設計通り
+  {key: 20,  value: 1.0},    // 低速：設計通り
+  {key: 30,  value: 1.0},    // 低速：設計通り（実測データ基準）
+  {key: 40,  value: 1.1},    // 推定値
+  {key: 50,  value: 1.11},   // 実測: 450mm→500mm (500/450=1.11)
+  {key: 60,  value: 1.2},    // 推定値
+  {key: 70,  value: 1.44},   // 実測: 450mm→650mm (650/450=1.44)
+  {key: 80,  value: 1.56},   // 実測: 450mm→700mm (700/450=1.56), 900mm→1000mm (1000/900=1.11)
+  {key: 90,  value: 2.67},   // 実測: 450mm→1200mm (1200/450=2.67)
+  {key: 100, value: 3.33}    // 実測: 450mm→1500mm (1500/450=3.33)
+];
+
+// センサーごとの色定義
+const sensorColors = {
+  'RrLH': {r: 255, g: 50, b: 150},   // ピンク
+  'FrLH': {r: 100, g: 200, b: 255},  // 水色
+  'Fr': {r: 50, g: 255, b: 50},      // 緑
+  'FrRH': {r: 255, g: 200, b: 50},   // 黄色
+  'RrRH': {r: 255, g: 100, b: 50}    // オレンジ
+};
+
+// グラフ関連変数
+let speedGraph, radiusGraph, speedCoefGraph;
+let speedCtx, radiusCtx, speedCoefCtx;
+let controlGraph, controlCtx;
+let isDragging = false;
+let dragPoint = null;
+let dragGraph = null;
+
+// マップ編集モード管理
+let speedMapMode = 'graph'; // 'graph' or 'table'
+let radiusMapMode = 'graph'; // 'graph' or 'table'
+let speedCoefMapMode = 'graph'; // 'graph' or 'table'
+
+// マーカー設定
+let markerSettings = {
+  rule1: {  // 狭い道判定（RrLH & RrRH）
+    enabled: true,
+    threshold: 300,  // mm
+    color: '#808080',  // グレー
+    name: 'ルール① 狭い道'
+  },
+  rule2: {  // 操舵指示範囲
+    enabled: true,
+    minValue: 90,  // 絶対値での最小値
+    maxValue: 100, // 絶対値での最大値
+    color: '#FF6B6B',  // 赤系
+    name: 'ルール② 大操舵'
+  },
+  rule3: {  // 駆動指示範囲
+    enabled: true,
+    minValue: 80,  // 最小値
+    maxValue: 100, // 最大値
+    color: '#4ECDC4',  // 青緑系
+    name: 'ルール③ 高駆動'
+  }
+};
+
+// マーカー共通設定
+let markerSize = 6;  // ひし形のサイズ（初期値は以前の半分）
+
+// マーカーデータ（各ルールごとのインデックス配列）
+let markersByRule = {
+  rule1: [],
+  rule2: [],
+  rule3: []
+};
+
+// 注釈機能
+let annotations = [];  // 注釈データの配列
+let selectedAnnotation = null;  // 選択中の注釈
+let isDraggingAnnotation = false;  // 注釈をドラッグ中かどうか
+let annotationIdCounter = 0;  // 注釈のユニークID生成用
+
+// 初期化
+document.addEventListener('DOMContentLoaded', function() {
+  initializeGraphs();
+  initializeControlGraph();
+  initializeSensorGraph();
+  setupEventListeners();
+  setupAccordion();
+  setupTableSidebar();
+  setupControlGraphEvents();
+  setupSensorGraphEvents();
+  drawAllGraphs();
+  updateSpeedTable();
+  updateRadiusTable();
+  updateSpeedCoefTable();
+});
+
+// テーブルサイドバーのセットアップ
+function setupTableSidebar() {
+  const resizeHandle = document.getElementById('tableResizeHandle');
+  const tableSidebar = document.getElementById('tableSidebar');
+  
+  // リサイズハンドルのイベント
+  resizeHandle.addEventListener('mousedown', (e) => {
+    isResizingTable = true;
+    tableStartX = e.clientX;
+    tableStartWidth = tableSidebar.offsetWidth;
+    e.preventDefault();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (isResizingTable) {
+      const deltaX = tableStartX - e.clientX;
+      const newWidth = Math.max(200, Math.min(800, tableStartWidth + deltaX));
+      tableSidebar.style.width = newWidth + 'px';
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    isResizingTable = false;
+  });
+}
+
+// テーブルサイドバーのトグル
+function toggleTableSidebar() {
+  const tableSidebar = document.getElementById('tableSidebar');
+  const toggleBtn = document.getElementById('tableToggleBtn');
+  isTableOpen = !isTableOpen;
+  
+  if (isTableOpen) {
+    tableSidebar.classList.remove('closed');
+    document.body.classList.remove('table-closed');
+    toggleBtn.textContent = '◀';
+  } else {
+    tableSidebar.classList.add('closed');
+    document.body.classList.add('table-closed');
+    toggleBtn.textContent = '◀';
+  }
+}
+
+// テーブル表示を更新
+function updateTableDisplay() {
+  if (!csvData.length) return;
+  
+  const headerRow = document.getElementById('tableHeaderRow');
+  const tableBody = document.getElementById('tableBody');
+  
+  // ヘッダーを作成
+  headerRow.innerHTML = '';
+  headers.forEach(header => {
+    const th = document.createElement('th');
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  
+  // データ行を作成
+  tableBody.innerHTML = '';
+  csvData.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    tr.id = 'tableRow' + index;
+    row.forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tableBody.appendChild(tr);
+  });
+  
+  // 現在の行にスクロール
+  scrollToCurrentRow();
+}
+
+// 現在の行にスクロール
+function scrollToCurrentRow() {
+  if (!csvData.length) return;
+  
+  const tableContainer = document.getElementById('tableContainer');
+  const currentRow = document.getElementById('tableRow' + currentTimeIndex);
+  
+  // すべての行から current-row クラスを削除
+  document.querySelectorAll('.data-table tr.current-row').forEach(row => {
+    row.classList.remove('current-row');
+  });
+  
+  if (currentRow) {
+    currentRow.classList.add('current-row');
+    
+    // テーブルの中央にスクロール
+    const containerHeight = tableContainer.clientHeight;
+    const rowTop = currentRow.offsetTop;
+    const rowHeight = currentRow.offsetHeight;
+    const scrollTop = rowTop - (containerHeight / 2) + (rowHeight / 2);
+    
+    tableContainer.scrollTop = scrollTop;
+  }
+}
+
+// アコーディオン機能のセットアップ
+function toggleAccordion(header) {
+  const content = header.nextElementSibling;
+  const icon = header.querySelector('.accordion-icon');
+  
+  content.classList.toggle('collapsed');
+  
+  if (content.classList.contains('collapsed')) {
+    icon.textContent = '▶';
+  } else {
+    icon.textContent = '▼';
+  }
+}
+
+function setupAccordion() {
+  // control-groupのアコーディオン
+  const controlHeaders = document.querySelectorAll('.control-group h3');
+  controlHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+      const content = this.nextElementSibling;
+      content.classList.toggle('collapsed');
+    });
+  });
+  
+  // その他のパネルのアコーディオン
+  const panelHeaders = document.querySelectorAll('.interactive-graph > h3, .map-quality-panel > h3, .stats-panel > h3');
+  panelHeaders.forEach(header => {
+    // h3の次の要素以降をすべてpanel-contentで囲む
+    const panel = header.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'panel-content';
+    
+    // h3の次の要素から全て移動
+    let next = header.nextElementSibling;
+    while (next) {
+      const current = next;
+      next = next.nextElementSibling;
+      wrapper.appendChild(current);
+    }
+    
+    panel.appendChild(wrapper);
+    
+    // クリックイベントを追加
+    header.addEventListener('click', function() {
+      this.classList.toggle('collapsed');
+      wrapper.classList.toggle('collapsed');
+    });
+  });
+}
+
+// グラフ範囲更新
+function updateGraphRange() {
+  graphRanges.speed.xMin = parseFloat(document.getElementById('speedXMin').value);
+  graphRanges.speed.xMax = parseFloat(document.getElementById('speedXMax').value);
+  graphRanges.speed.yMin = parseFloat(document.getElementById('speedYMin').value);
+  graphRanges.speed.yMax = parseFloat(document.getElementById('speedYMax').value);
+  
+  graphRanges.radius.xMin = parseFloat(document.getElementById('radiusXMin').value);
+  graphRanges.radius.xMax = parseFloat(document.getElementById('radiusXMax').value);
+  graphRanges.radius.yMin = parseFloat(document.getElementById('radiusYMin').value);
+  graphRanges.radius.yMax = parseFloat(document.getElementById('radiusYMax').value);
+  
+  graphRanges.speedCoef.xMin = parseFloat(document.getElementById('speedCoefXMin').value);
+  graphRanges.speedCoef.xMax = parseFloat(document.getElementById('speedCoefXMax').value);
+  graphRanges.speedCoef.yMin = parseFloat(document.getElementById('speedCoefYMin').value);
+  graphRanges.speedCoef.yMax = parseFloat(document.getElementById('speedCoefYMax').value);
+  
+  drawAllGraphs();
+}
+
+// センサー角度更新
+function updateSensorAngle(sensor, value) {
+  sensorAngles[sensor] = parseFloat(value);
+  document.getElementById(`angle${sensor}`).value = value;
+  document.querySelector(`#angle${sensor}`).previousElementSibling.value = value;
+  
+  if (positions.length > 0) {
+    drawTrack();
+  }
+}
+
+// 車両パラメータ更新
+function updateWheelbase(value) {
+  wheelbase = parseFloat(value) / 1000;  // mmからmに変換
+  const numberInput = document.getElementById('wheelbaseValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateWheelbase"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`ホイールベース更新: ${value}mm = ${wheelbase}m`);
+}
+
+function recalculatePositions() {
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// キャリブレーション関数
+function updateSpeedScale(value) {
+  speedScale = parseFloat(value);
+  const numberInput = document.getElementById('speedScaleValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateSpeedScale"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`速度スケール更新: ${speedScale}`);
+}
+
+function updateRadiusGain(value) {
+  radiusGain = parseFloat(value);
+  const numberInput = document.getElementById('radiusGainValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateRadiusGain"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`旋回半径ゲイン更新: ${radiusGain}`);
+}
+
+function updateTimeScale(value) {
+  timeScale = parseFloat(value);
+  const numberInput = document.getElementById('timeScaleValue');
+  const rangeInput = document.querySelector('input[type="range"][oninput*="updateTimeScale"]');
+  if (numberInput) numberInput.value = value;
+  if (rangeInput) rangeInput.value = value;
+  console.log(`時間スケール更新: ${timeScale}`);
+}
+
+function resetCalibration() {
+  speedScale = 1.0;
+  steeringGain = 1.0;
+  timeScale = 1.0;
+  
+  document.getElementById('speedScaleValue').value = 1.0;
+  document.getElementById('steeringGainValue').value = 1.0;
+  document.getElementById('timeScaleValue').value = 1.0;
+  
+  document.querySelectorAll('input[type="range"][oninput*="updateSpeedScale"]')[0].value = 1.0;
+  document.querySelectorAll('input[type="range"][oninput*="updateSteeringGain"]')[0].value = 1.0;
+  document.querySelectorAll('input[type="range"][oninput*="updateTimeScale"]')[0].value = 1.0;
+  
+  console.log('キャリブレーションをリセットしました');
+  
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+function showCourseReference() {
+  showCourseRef = !showCourseRef;
+  const btn = event.target;
+  if (showCourseRef) {
+    btn.textContent = '✅ 参照線を非表示';
+    btn.style.background = 'linear-gradient(135deg, #8ac926, #6ba01e)';
+  } else {
+    btn.textContent = '📊 コース参照線を表示';
+    btn.style.background = '';
+  }
+  drawTrack();
+}
+
+function resetSpeedMap() {
+  speedMap = [
+    {key: 0, value: 0}, {key: 10, value: 0.1}, {key: 20, value: 0.2},
+    {key: 30, value: 0.5}, {key: 40, value: 0.6}, {key: 50, value: 1.75},
+    {key: 60, value: 2.0}, {key: 70, value: 2.2}, {key: 80, value: 2.875},
+    {key: 90, value: 3.375}, {key: 100, value: 4.375}
+  ];
+  drawAllGraphs();
+  updateSpeedTable();
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+function resetRadiusMap() {
+  radiusMap = [
+    {key: -100, value: 450}, {key: -90, value: 500}, {key: -80, value: 600},
+    {key: -70, value: 900}, {key: -60, value: 1200}, {key: -50, value: 1800},
+    {key: -40, value: 2500}, {key: -30, value: 3500}, {key: -20, value: 5000},
+    {key: -10, value: 8000}, {key: 0, value: 100000},
+    {key: 10, value: 8000}, {key: 20, value: 5000}, {key: 30, value: 3500},
+    {key: 40, value: 2500}, {key: 50, value: 1800}, {key: 60, value: 1200},
+    {key: 70, value: 900}, {key: 80, value: 600}, {key: 90, value: 500},
+    {key: 100, value: 450}
+  ];
+  drawAllGraphs();
+  updateRadiusTable();
+  if (csvData.length > 0) {
+    recalculatePositions();
+  }
+}
+
+// メディアンフィルタ関数
+function median(arr) {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function applyMedianFilter() {
+  if (!csvData.length) return;
+  
+  const windowSize = 5; // 5点のメディアンフィルタ
+  filteredData = csvData.map((row, i) => {
+    const newRow = [...row];
+    
+    // 各センサー列にフィルタを適用
+    headers.forEach((header, idx) => {
+      if (header === 'RrLH' || header === 'FrLH' || header === 'Fr' || header === 'FrRH' || header === 'RrRH') {
+        // ウィンドウ内のデータを収集
+        const window = [];
+        for (let j = Math.max(0, i - Math.floor(windowSize / 2)); j <= Math.min(csvData.length - 1, i + Math.floor(windowSize / 2)); j++) {
+          const val = parseFloat(csvData[j][idx]);
+          if (!isNaN(val)) {
+            window.push(val);
+          }
+        }
+        // メディアンを計算
+        newRow[idx] = median(window);
+      }
+    });
+    
+    return newRow;
+  });
+  
+  console.log(`メディアンフィルタ適用: ${filteredData.length}点処理`);
+}
+
+function toggleMedianFilter() {
+  medianFilterEnabled = !medianFilterEnabled;
+  
+  if (medianFilterEnabled && filteredData.length === 0) {
+    applyMedianFilter();
+  }
+  
+  console.log(`メディアンフィルタ切り替え: ${medianFilterEnabled ? 'ON' : 'OFF'}`);
+  console.log(`filteredData.length: ${filteredData.length}, csvData.length: ${csvData.length}`);
+  
+  // マーカーを再検出（フィルタ状態に応じて）
+  if (csvData.length > 0) {
+    detectAllMarkers();
+    console.log('マーカー再検出完了');
+  }
+  
+  // 再描画
+  drawTrack();
+  drawControlGraph();
+  drawSensorGraph();
+}
+
+// 注釈機能
+function addAnnotation() {
+  if (!positions.length || currentTimeIndex >= positions.length) {
+    alert('データが読み込まれていないか、無効な位置です');
+    return;
+  }
+  
+  const pos = positions[currentTimeIndex];
+  
+  // テキスト入力用のダイアログを作成
+  showAnnotationDialog('', (text) => {
+    if (text === null || text.trim() === '') return;
+    
+    // 注釈データを作成
+    const annotation = {
+      id: annotationIdCounter++,
+      timeIndex: currentTimeIndex,
+      vehicleX: pos.x,  // 車両位置（mm）
+      vehicleY: pos.y,
+      offsetX: 100,  // 注釈の相対位置（ピクセル）
+      offsetY: -100,
+      text: text.trim(),
+      opacity: 0.9,
+      width: 200,  // 注釈ボックスの幅
+      height: 100   // 注釈ボックスの高さ（5行分）
+    };
+    
+    annotations.push(annotation);
+    console.log(`注釈追加: ID=${annotation.id}, 時刻=${currentTimeIndex}`);
+    drawTrack();
+  });
+}
+
+function editAnnotation(annotation) {
+  showAnnotationDialog(annotation.text, (newText) => {
+    if (newText !== null && newText.trim() !== '') {
+      annotation.text = newText.trim();
+      drawTrack();
+    }
+  });
+}
+
+// 注釈入力ダイアログ（改行対応）
+function showAnnotationDialog(initialText, callback) {
+  // 既存のダイアログがあれば削除
+  const existingDialog = document.getElementById('annotationDialog');
+  if (existingDialog) {
+    existingDialog.remove();
+  }
+  
+  // ダイアログを作成
+  const dialog = document.createElement('div');
+  dialog.id = 'annotationDialog';
+  dialog.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(30, 30, 30, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    z-index: 10000;
+    min-width: 400px;
+  `;
+  
+  dialog.innerHTML = `
+    <div style="color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 5px;">📝 注釈テキスト入力</div>
+    <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 10px;">Enterで改行、Ctrl+Enterで決定</div>
+    <textarea id="annotationTextarea" style="
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      border: 1px solid #666;
+      border-radius: 5px;
+      background: rgba(50, 50, 50, 0.9);
+      color: white;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      resize: vertical;
+    ">${initialText}</textarea>
+    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+      <button id="annotationCancelBtn" style="
+        padding: 8px 20px;
+        border: none;
+        border-radius: 5px;
+        background: #666;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+      ">キャンセル</button>
+      <button id="annotationOkBtn" style="
+        padding: 8px 20px;
+        border: none;
+        border-radius: 5px;
+        background: linear-gradient(45deg, #ffd700, #ff8c00);
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+      ">OK</button>
+    </div>
+  `;
+  
+  document.body.appendChild(dialog);
+  
+  const textarea = document.getElementById('annotationTextarea');
+  const okBtn = document.getElementById('annotationOkBtn');
+  const cancelBtn = document.getElementById('annotationCancelBtn');
+  
+  // フォーカスを当てる
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  
+  // OKボタン
+  okBtn.onclick = () => {
+    callback(textarea.value);
+    dialog.remove();
+  };
+  
+  // キャンセルボタン
+  cancelBtn.onclick = () => {
+    callback(null);
+    dialog.remove();
+  };
+  
+  // Enterキー（Ctrl+Enterで決定）
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      okBtn.click();
+    }
+  });
+}
+
+function deleteAnnotation(annotation) {
+  if (confirm('この注釈を削除しますか？')) {
+    const index = annotations.indexOf(annotation);
+    if (index > -1) {
+      annotations.splice(index, 1);
+      selectedAnnotation = null;
+      drawTrack();
+    }
+  }
+}
+
+function adjustAnnotationOpacity(annotation, delta) {
+  annotation.opacity = Math.max(0.1, Math.min(1.0, annotation.opacity + delta));
+  drawTrack();
+}
+
+// 密度とサイズ調整
+function updateDensity(value) {
+  sensorDensity = parseInt(value);
+  document.getElementById('densityValue').textContent = value;
+  drawTrack();
+}
+
+function updatePointSize(value) {
+  sensorPointSize = parseInt(value);
+  document.getElementById('sizeValue').textContent = value + 'px';
+  // プロットサイズに応じて車両サイズも調整（基本1.8倍、プロットサイズ4を基準に比例）
+  vehicleSizeMultiplier = 1.8 * (sensorPointSize / 4);
+  drawTrack();
+}
+
+function updateLineWidth(value) {
+  sensorLineWidth = parseFloat(value);
+  document.getElementById('lineWidthValue').textContent = value + 'px';
+  drawTrack();
+}
+
+function updatePastPlots(value) {
+  pastPlotsCount = parseInt(value);
+  document.getElementById('pastPlotsValue').textContent = value;
+  drawTrack();
+}
+
+function updateFuturePlots(value) {
+  futurePlotsCount = parseInt(value);
+  document.getElementById('futurePlotsValue').textContent = value + (value === 0 ? ' (全区間)' : '');
+  drawTrack();
+}
+
+// マップ操作関数
+function updateZoom(value) {
+  mapZoom = parseFloat(value);
+  document.getElementById('zoomValue').textContent = value + 'x';
+  drawTrack();
+}
+
+function updateRotation(value) {
+  mapRotation = parseFloat(value) * Math.PI / 180;
+  document.getElementById('rotationValue').textContent = value + '°';
+  drawTrack();
+}
+
+function resetView() {
+  mapZoom = 1.0;
+  mapOffsetX = 0;
+  mapOffsetY = 0;
+  mapRotation = 0;
+  document.getElementById('zoomSlider').value = 1.0;
+  document.getElementById('zoomValue').textContent = '1.0x';
+  document.getElementById('rotationSlider').value = 0;
+  document.getElementById('rotationValue').textContent = '0°';
+  drawTrack();
+}
+
+function resetRotation() {
+  mapRotation = 0;
+  document.getElementById('rotationSlider').value = 0;
+  document.getElementById('rotationValue').textContent = '0°';
+  drawTrack();
+}
+
+// マーカー設定関数（汎用）
+function toggleMarker(rule, enabled) {
+  markerSettings[rule].enabled = enabled;
+  if (enabled && csvData.length > 0) {
+    detectAllMarkers();
+  }
+  drawTrack();
+}
+
+function updateMarkerSize(value) {
+  markerSize = parseFloat(value);
+  document.getElementById('markerSizeValue').textContent = value;
+  drawTrack();
+}
+
+function updateMarkerThreshold(rule, value) {
+  markerSettings[rule].threshold = parseFloat(value);
+  document.getElementById(`${rule}ThresholdValue`).textContent = value;
+  if (markerSettings[rule].enabled && csvData.length > 0) {
+    detectAllMarkers();
+    drawTrack();
+  }
+}
+
+function updateMarkerRange(rule) {
+  const minValue = parseFloat(document.getElementById(`${rule}MinValue`).value);
+  const maxValue = parseFloat(document.getElementById(`${rule}MaxValue`).value);
+  markerSettings[rule].minValue = minValue;
+  markerSettings[rule].maxValue = maxValue;
+  if (markerSettings[rule].enabled && csvData.length > 0) {
+    detectAllMarkers();
+    drawTrack();
+  }
+}
+
+function updateMarkerColor(rule, color) {
+  markerSettings[rule].color = color;
+  drawTrack();
+}
+
+// 全マーカーを検出
+function detectAllMarkers() {
+  console.log('=== detectAllMarkers開始 ===');
+  console.log(`medianFilterEnabled: ${medianFilterEnabled}`);
+  console.log(`filteredData.length: ${filteredData.length}`);
+  console.log(`csvData.length: ${csvData.length}`);
+  
+  // 初期化
+  markersByRule = {
+    rule1: [],
+    rule2: [],
+    rule3: []
+  };
+  
+  if (!csvData || csvData.length === 0 || !headers) {
+    console.log('csvDataまたはheadersが空です');
+    return;
+  }
+  
+  // メディアンフィルタが有効な場合はフィルタ済みデータを使用
+  const useFilteredData = medianFilterEnabled && filteredData.length > 0;
+  const dataSource = useFilteredData ? filteredData : csvData;
+  
+  console.log(`使用するデータソース: ${useFilteredData ? 'filteredData' : 'csvData'} (${dataSource.length}行)`);
+  
+  // ルール① 狭い道判定（RrLH & RrRH）
+  if (markerSettings.rule1.enabled) {
+    const rrLhIdx = headers.indexOf('RrLH');
+    const rrRhIdx = headers.indexOf('RrRH');
+    
+    if (rrLhIdx !== -1 && rrRhIdx !== -1) {
+      const threshold = markerSettings.rule1.threshold;
+      dataSource.forEach((row, i) => {
+        const rrLh = parseFloat(row[rrLhIdx]);
+        const rrRh = parseFloat(row[rrRhIdx]);
+        
+        if (!isNaN(rrLh) && !isNaN(rrRh) && rrLh <= threshold && rrRh <= threshold) {
+          markersByRule.rule1.push(i);
+        }
+      });
+    }
+  }
+  
+  // ルール② 操舵指示範囲
+  if (markerSettings.rule2.enabled) {
+    const strIdx = headers.indexOf('Str');
+    
+    if (strIdx !== -1) {
+      const minVal = markerSettings.rule2.minValue;
+      const maxVal = markerSettings.rule2.maxValue;
+      
+      dataSource.forEach((row, i) => {
+        const str = parseFloat(row[strIdx]);
+        const absStr = Math.abs(str);
+        
+        if (!isNaN(str) && absStr >= minVal && absStr <= maxVal) {
+          markersByRule.rule2.push(i);
+        }
+      });
+    }
+  }
+  
+  // ルール③ 駆動指示範囲
+  if (markerSettings.rule3.enabled) {
+    const thrIdx = headers.indexOf('Thr');
+    
+    if (thrIdx !== -1) {
+      const minVal = markerSettings.rule3.minValue;
+      const maxVal = markerSettings.rule3.maxValue;
+      
+      dataSource.forEach((row, i) => {
+        const thr = parseFloat(row[thrIdx]);
+        
+        if (!isNaN(thr) && thr >= minVal && thr <= maxVal) {
+          markersByRule.rule3.push(i);
+        }
+      });
+    }
+  }
+  
+  const filterStatus = useFilteredData ? 'フィルタ済み' : '元データ';
+  console.log(`マーカー検出結果(${filterStatus}): ルール①=${markersByRule.rule1.length}, ルール②=${markersByRule.rule2.length}, ルール③=${markersByRule.rule3.length}`);
+  
+  // ルール①の最初の5個のインデックスを表示（デバッグ用）
+  if (markersByRule.rule1.length > 0) {
+    console.log(`ルール①の最初の5個: [${markersByRule.rule1.slice(0, 5).join(', ')}]`);
+  }
+  
+  console.log('=== detectAllMarkers終了 ===');
+}
+
+// 制御グラフ初期化
+function initializeControlGraph() {
+  controlGraph = document.getElementById('controlGraph');
+  if (controlGraph) {
+    controlCtx = controlGraph.getContext('2d');
+    const container = controlGraph.parentElement;
+    const rect = container.getBoundingClientRect();
+    controlGraph.width = rect.width;
+    controlGraph.height = 150;
+  }
+}
+
+// センサグラフ初期化
+function initializeSensorGraph() {
+  sensorGraph = document.getElementById('sensorGraph');
+  if (sensorGraph) {
+    sensorCtx = sensorGraph.getContext('2d');
+    const container = sensorGraph.parentElement;
+    const rect = container.getBoundingClientRect();
+    sensorGraph.width = rect.width;
+    sensorGraph.height = 200;
+  }
+}
+
+// 制御グラフのイベント設定
+function setupControlGraphEvents() {
+  const container = document.getElementById('controlGraphContainer');
+  if (!container) return;
+  
+  // マウスダウン
+  container.addEventListener('mousedown', (e) => {
+    isDraggingControlGraph = true;
+    controlGraphDragStartX = e.clientX;
+    controlGraphDragStartY = e.clientY;
+    container.classList.add('dragging');
+  });
+  
+  // マウス移動
+  container.addEventListener('mousemove', (e) => {
+    if (!isDraggingControlGraph) return;
+    
+    const deltaX = e.clientX - controlGraphDragStartX;
+    const deltaY = e.clientY - controlGraphDragStartY;
+    
+    controlGraphOffsetX += deltaX;
+    controlGraphOffsetY += deltaY;
+    
+    controlGraphDragStartX = e.clientX;
+    controlGraphDragStartY = e.clientY;
+    
+    drawControlGraph();
+  });
+  
+  // マウスアップ
+  const handleMouseUp = () => {
+    isDraggingControlGraph = false;
+    container.classList.remove('dragging');
+  };
+  
+  container.addEventListener('mouseup', handleMouseUp);
+  container.addEventListener('mouseleave', handleMouseUp);
+  
+  // マウスホイール
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.1;
+    
+    if (controlGraphZoomMode === 'x') {
+      controlGraphZoomX = Math.max(0.5, Math.min(10, controlGraphZoomX + delta));
+    } else if (controlGraphZoomMode === 'y') {
+      controlGraphZoomY = Math.max(0.5, Math.min(10, controlGraphZoomY + delta));
+    } else {
+      controlGraphZoomX = Math.max(0.5, Math.min(10, controlGraphZoomX + delta));
+      controlGraphZoomY = Math.max(0.5, Math.min(10, controlGraphZoomY + delta));
+    }
+    drawControlGraph();
+  });
+}
+
+// ズームモード切り替え
+function setControlGraphZoomMode(mode) {
+  controlGraphZoomMode = mode;
+  
+  // ボタンのアクティブ状態を更新
+  document.querySelectorAll('.zoom-mode-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (mode === 'x') {
+    document.getElementById('zoomModeX').classList.add('active');
+  } else if (mode === 'y') {
+    document.getElementById('zoomModeY').classList.add('active');
+  } else {
+    document.getElementById('zoomModeBoth').classList.add('active');
+  }
+}
+
+// 制御グラフのズーム・リセット機能
+function zoomInControlGraph() {
+  const delta = 0.2;
+  if (controlGraphZoomMode === 'x') {
+    controlGraphZoomX = Math.min(10, controlGraphZoomX + delta);
+  } else if (controlGraphZoomMode === 'y') {
+    controlGraphZoomY = Math.min(10, controlGraphZoomY + delta);
+  } else {
+    controlGraphZoomX = Math.min(10, controlGraphZoomX + delta);
+    controlGraphZoomY = Math.min(10, controlGraphZoomY + delta);
+  }
+  drawControlGraph();
+}
+
+function zoomOutControlGraph() {
+  const delta = 0.2;
+  if (controlGraphZoomMode === 'x') {
+    controlGraphZoomX = Math.max(0.5, controlGraphZoomX - delta);
+  } else if (controlGraphZoomMode === 'y') {
+    controlGraphZoomY = Math.max(0.5, controlGraphZoomY - delta);
+  } else {
+    controlGraphZoomX = Math.max(0.5, controlGraphZoomX - delta);
+    controlGraphZoomY = Math.max(0.5, controlGraphZoomY - delta);
+  }
+  drawControlGraph();
+}
+
+function resetControlGraphView() {
+  controlGraphZoomX = 1.0;
+  controlGraphZoomY = 1.0;
+  controlGraphOffsetX = 0;
+  controlGraphOffsetY = 0;
+  drawControlGraph();
+}
+
+// センサグラフのイベント設定
+function setupSensorGraphEvents() {
+  const container = document.getElementById('sensorGraphContainer');
+  if (!container) return;
+  
+  // マウスダウン
+  container.addEventListener('mousedown', (e) => {
+    isDraggingSensorGraph = true;
+    sensorGraphDragStartX = e.clientX;
+    sensorGraphDragStartY = e.clientY;
+    container.classList.add('dragging');
+  });
+  
+  // マウス移動
+  container.addEventListener('mousemove', (e) => {
+    if (!isDraggingSensorGraph) return;
+    
+    const deltaX = e.clientX - sensorGraphDragStartX;
+    const deltaY = e.clientY - sensorGraphDragStartY;
+    
+    sensorGraphOffsetX += deltaX;
+    sensorGraphOffsetY += deltaY;
+    
+    sensorGraphDragStartX = e.clientX;
+    sensorGraphDragStartY = e.clientY;
+    
+    drawSensorGraph();
+  });
+  
+  // マウスアップ
+  const handleMouseUp = () => {
+    if (isDraggingSensorGraph) {
+      isDraggingSensorGraph = false;
+      container.classList.remove('dragging');
+    }
+  };
+  
+  container.addEventListener('mouseup', handleMouseUp);
+  container.addEventListener('mouseleave', handleMouseUp);
+  
+  // マウスホイール
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.1;
+    
+    if (sensorGraphZoomMode === 'x') {
+      sensorGraphZoomX = Math.max(0.5, Math.min(10, sensorGraphZoomX + delta));
+    } else if (sensorGraphZoomMode === 'y') {
+      sensorGraphZoomY = Math.max(0.5, Math.min(10, sensorGraphZoomY + delta));
+    } else {
+      sensorGraphZoomX = Math.max(0.5, Math.min(10, sensorGraphZoomX + delta));
+      sensorGraphZoomY = Math.max(0.5, Math.min(10, sensorGraphZoomY + delta));
+    }
+    drawSensorGraph();
+  });
+}
+
+// センサグラフのズームモード切り替え
+function setSensorGraphZoomMode(mode) {
+  sensorGraphZoomMode = mode;
+  
+  document.querySelectorAll('#sensorZoomModeX, #sensorZoomModeY, #sensorZoomModeBoth').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (mode === 'x') {
+    document.getElementById('sensorZoomModeX').classList.add('active');
+  } else if (mode === 'y') {
+    document.getElementById('sensorZoomModeY').classList.add('active');
+  } else {
+    document.getElementById('sensorZoomModeBoth').classList.add('active');
+  }
+}
+
+// センサグラフのズーム・リセット機能
+function zoomInSensorGraph() {
+  const delta = 0.2;
+  if (sensorGraphZoomMode === 'x') {
+    sensorGraphZoomX = Math.min(10, sensorGraphZoomX + delta);
+  } else if (sensorGraphZoomMode === 'y') {
+    sensorGraphZoomY = Math.min(10, sensorGraphZoomY + delta);
+  } else {
+    sensorGraphZoomX = Math.min(10, sensorGraphZoomX + delta);
+    sensorGraphZoomY = Math.min(10, sensorGraphZoomY + delta);
+  }
+  drawSensorGraph();
+}
+
+function zoomOutSensorGraph() {
+  const delta = 0.2;
+  if (sensorGraphZoomMode === 'x') {
+    sensorGraphZoomX = Math.max(0.5, sensorGraphZoomX - delta);
+  } else if (sensorGraphZoomMode === 'y') {
+    sensorGraphZoomY = Math.max(0.5, sensorGraphZoomY - delta);
+  } else {
+    sensorGraphZoomX = Math.max(0.5, sensorGraphZoomX - delta);
+    sensorGraphZoomY = Math.max(0.5, sensorGraphZoomY - delta);
+  }
+  drawSensorGraph();
+}
+
+function resetSensorGraphView() {
+  sensorGraphZoomX = 1.0;
+  sensorGraphZoomY = 1.0;
+  sensorGraphOffsetX = 0;
+  sensorGraphOffsetY = 0;
+  drawSensorGraph();
+}
+
+// グラフ初期化
+function initializeGraphs() {
+  speedGraph = document.getElementById('speedGraph');
+  radiusGraph = document.getElementById('radiusGraph');
+  speedCoefGraph = document.getElementById('speedCoefGraph');
+  speedCtx = speedGraph.getContext('2d');
+  radiusCtx = radiusGraph.getContext('2d');
+  speedCoefCtx = speedCoefGraph.getContext('2d');
+  
+  const container = document.getElementById('speedGraphContainer');
+  const rect = container.getBoundingClientRect();
+  speedGraph.width = rect.width;
+  speedGraph.height = 240;
+  radiusGraph.width = rect.width;
+  radiusGraph.height = 240;
+  speedCoefGraph.width = rect.width;
+  speedCoefGraph.height = 240;
+  
+  setupGraphEvents();
+}
+
+// グラフイベント設定
+function setupGraphEvents() {
+  speedGraph.addEventListener('mousedown', (e) => handleGraphMouseDown(e, 'speed'));
+  speedGraph.addEventListener('mousemove', (e) => handleGraphMouseMove(e, 'speed'));
+  speedGraph.addEventListener('mouseup', (e) => handleGraphMouseUp(e, 'speed'));
+  speedGraph.addEventListener('dblclick', (e) => handleGraphDoubleClick(e, 'speed'));
+  
+  radiusGraph.addEventListener('mousedown', (e) => handleGraphMouseDown(e, 'radius'));
+  radiusGraph.addEventListener('mousemove', (e) => handleGraphMouseMove(e, 'radius'));
+  radiusGraph.addEventListener('mouseup', (e) => handleGraphMouseUp(e, 'radius'));
+  radiusGraph.addEventListener('dblclick', (e) => handleGraphDoubleClick(e, 'radius'));
+  
+  speedCoefGraph.addEventListener('mousedown', (e) => handleGraphMouseDown(e, 'speedCoef'));
+  speedCoefGraph.addEventListener('mousemove', (e) => handleGraphMouseMove(e, 'speedCoef'));
+  speedCoefGraph.addEventListener('mouseup', (e) => handleGraphMouseUp(e, 'speedCoef'));
+  speedCoefGraph.addEventListener('dblclick', (e) => handleGraphDoubleClick(e, 'speedCoef'));
+}
+
+// イベントリスナー設定
+function setupEventListeners() {
+  document.getElementById('csvFile').addEventListener('change', handleCSVUpload);
+  document.querySelectorAll('.sensorCheckbox').forEach(cb => {
+    cb.addEventListener('change', drawTrack);
+  });
+  
+  const timeSlider = document.getElementById('timeSlider');
+  timeSlider.addEventListener('input', function() {
+    currentTimeIndex = parseInt(this.value);
+    updateTimeDisplay();
+    drawTrack();
+  });
+  
+  // キャンバスイベントを追加
+  const trackCanvas = document.getElementById('trackCanvas');
+  trackCanvas.addEventListener('mousedown', handleCanvasMouseDown);
+  trackCanvas.addEventListener('mousemove', handleCanvasMouseMove);
+  trackCanvas.addEventListener('mouseup', handleCanvasMouseUp);
+  trackCanvas.addEventListener('wheel', handleCanvasWheel);
+  trackCanvas.addEventListener('mouseleave', handleCanvasMouseUp);
+  
+  // キーボードイベント（注釈操作用）
+  document.addEventListener('keydown', (e) => {
+    if (!selectedAnnotation) return;
+    
+    if (e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+      editAnnotation(selectedAnnotation);
+    } else if (e.key === 'd' || e.key === 'D' || e.key === 'Delete') {
+      e.preventDefault();
+      deleteAnnotation(selectedAnnotation);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      adjustAnnotationOpacity(selectedAnnotation, 0.1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      adjustAnnotationOpacity(selectedAnnotation, -0.1);
+    }
+  });
+}
+
+// キャンバスマウスダウン処理
+function handleCanvasMouseDown(e) {
+  if (!positions.length) return;
+  
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  
+  // メディアンフィルタボタンをクリックしたか確認
+  if (canvas.medianBtnBounds) {
+    const btn = canvas.medianBtnBounds;
+    if (clickX >= btn.x && clickX <= btn.x + btn.width &&
+        clickY >= btn.y && clickY <= btn.y + btn.height) {
+      toggleMedianFilter();
+      return;
+    }
+  }
+  
+  // 注釈をクリックしたか確認
+  let clickedAnnotation = null;
+  for (let i = annotations.length - 1; i >= 0; i--) {
+    const ann = annotations[i];
+    if (ann._canvasBounds) {
+      const bounds = ann._canvasBounds;
+      if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
+          clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
+        clickedAnnotation = ann;
+        break;
+      }
+    }
+  }
+  
+  if (clickedAnnotation) {
+    selectedAnnotation = clickedAnnotation;
+    isDraggingAnnotation = true;
+    dragStartX = clickX;
+    dragStartY = clickY;
+    canvas.style.cursor = 'move';
+    drawTrack();
+    return;
+  }
+  
+  // 注釈以外をクリックしたら選択解除
+  if (selectedAnnotation) {
+    selectedAnnotation = null;
+    drawTrack();
+  }
+  
+  // コンパスをクリックしたか確認
+  const compassRadius = 40;
+  const compassCenterX = canvas.width - 80;
+  const compassCenterY = 80;
+  const distToCompass = Math.sqrt((clickX - compassCenterX) ** 2 + (clickY - compassCenterY) ** 2);
+  
+  if (distToCompass <= compassRadius) {
+    isDraggingCompass = true;
+    compassX = compassCenterX;
+    compassY = compassCenterY;
+    canvas.classList.add('dragging');
+    return;
+  }
+  
+  // 再生中は車両ドラッグのみ無効、パン操作は有効
+  if (isPlaying) {
+    // 再生中はマップドラッグのみ許可
+    isDraggingMap = true;
+    dragStartX = clickX;
+    dragStartY = clickY;
+    canvas.classList.add('dragging');
+    return;
+  }
+  
+  // 自車プロットまたは軌跡ライン近くをクリックしたか確認
+  const clickThreshold = 20; // クリック判定の閾値（ピクセル）
+  let nearVehicleOrTrack = false;
+  
+  // 現在の車両位置との距離をチェック
+  if (currentTimeIndex < positions.length) {
+    const currentPos = positions[currentTimeIndex];
+    const transformedPos = applyTransform(currentPos.x, currentPos.y);
+    const distToVehicle = Math.sqrt((clickX - transformedPos.x) ** 2 + (clickY - transformedPos.y) ** 2);
+    
+    if (distToVehicle <= clickThreshold * 2) {
+      nearVehicleOrTrack = true;
+    }
+  }
+  
+  // 軌跡ライン上をクリックしたかチェック
+  if (!nearVehicleOrTrack) {
+    for (let i = 0; i < Math.min(currentTimeIndex, positions.length - 1); i++) {
+      const p1 = positions[i];
+      const p2 = positions[i + 1];
+      const tp1 = applyTransform(p1.x, p1.y);
+      const tp2 = applyTransform(p2.x, p2.y);
+      
+      const distToLine = pointToLineDistance(clickX, clickY, tp1.x, tp1.y, tp2.x, tp2.y);
+      
+      if (distToLine <= clickThreshold) {
+        nearVehicleOrTrack = true;
+        break;
+      }
+    }
+  }
+  
+  if (nearVehicleOrTrack) {
+    // 自車プロットまたはライン上：車両ドラッグ
+    isDraggingVehicle = true;
+    updateVehiclePositionFromMouse(clickX, clickY);
+  } else {
+    // それ以外：マップドラッグ
+    isDraggingMap = true;
+    dragStartX = clickX;
+    dragStartY = clickY;
+    canvas.classList.add('dragging');
+  }
+}
+
+// 点から線分への最短距離を計算
+function pointToLineDistance(px, py, x1, y1, x2, y2) {
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+  
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+  
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+  
+  let xx, yy;
+  
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+  
+  const dx = px - xx;
+  const dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// キャンバスマウス移動処理
+function handleCanvasMouseMove(e) {
+  if (!positions.length && !isDraggingCompass) return;
+  
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  // ホバー中の注釈を確認（ドラッグ中でない場合）
+  if (!isDraggingAnnotation && !isDraggingMap && !isDraggingCompass && !isDraggingVehicle) {
+    let hovering = false;
+    for (let i = annotations.length - 1; i >= 0; i--) {
+      const ann = annotations[i];
+      if (ann._canvasBounds) {
+        const bounds = ann._canvasBounds;
+        if (mouseX >= bounds.x && mouseX <= bounds.x + bounds.width &&
+            mouseY >= bounds.y && mouseY <= bounds.y + bounds.height) {
+          hovering = true;
+          break;
+        }
+      }
+    }
+    canvas.style.cursor = hovering ? 'pointer' : 'default';
+  }
+  
+  if (isDraggingAnnotation && selectedAnnotation) {
+    // 注釈ドラッグ
+    const deltaX = mouseX - dragStartX;
+    const deltaY = mouseY - dragStartY;
+    selectedAnnotation.offsetX += deltaX;
+    selectedAnnotation.offsetY += deltaY;
+    dragStartX = mouseX;
+    dragStartY = mouseY;
+    drawTrack();
+  } else if (isDraggingCompass) {
+    // コンパスドラッグ：マウス位置からの角度を計算
+    const dx = mouseX - compassX;
+    const dy = mouseY - compassY;
+    const angle = Math.atan2(dy, dx);
+    // atan2は-πからπなので、0から2πに変換してから度に変換
+    let degrees = ((angle * 180 / Math.PI) + 90 + 360) % 360;
+    mapRotation = degrees * Math.PI / 180;
+    document.getElementById('rotationSlider').value = degrees;
+    document.getElementById('rotationValue').textContent = degrees.toFixed(0) + '°';
+    drawTrack();
+  } else if (isDraggingMap) {
+    const deltaX = mouseX - dragStartX;
+    const deltaY = mouseY - dragStartY;
+    mapOffsetX += deltaX;
+    mapOffsetY += deltaY;
+    dragStartX = mouseX;
+    dragStartY = mouseY;
+    drawTrack();
+  } else if (isDraggingVehicle && !isPlaying) {
+    updateVehiclePositionFromMouse(mouseX, mouseY);
+  }
+}
+
+// キャンバスマウスアップ処理
+function handleCanvasMouseUp(e) {
+  const canvas = document.getElementById('trackCanvas');
+  isDraggingMap = false;
+  isDraggingVehicle = false;
+  isDraggingCompass = false;
+  isDraggingAnnotation = false;
+  canvas.classList.remove('dragging');
+  canvas.style.cursor = 'default';
+}
+
+// マウスホイールでズーム
+function handleCanvasWheel(e) {
+  e.preventDefault();
+  const delta = -Math.sign(e.deltaY) * 0.1;
+  mapZoom = Math.max(0.1, Math.min(10, mapZoom + delta));
+  document.getElementById('zoomSlider').value = mapZoom;
+  document.getElementById('zoomValue').textContent = mapZoom.toFixed(1) + 'x';
+  drawTrack();
+}
+
+// マウス位置から最も近い車両位置を更新（ズーム対応版）
+function updateVehiclePositionFromMouse(mouseX, mouseY) {
+  if (!positions.length) return;
+  
+  let minDistance = Infinity;
+  let nearestIndex = 0;
+  
+  // すべてのポジションをチェックするのは重いので、サンプリングして高速化
+  const step = Math.max(1, Math.floor(positions.length / 500));
+    
+  for (let i = 0; i < positions.length; i += step) {
+    const transformedPos = applyTransform(positions[i].x, positions[i].y);
+    const distance = Math.sqrt((mouseX - transformedPos.x) ** 2 + (mouseY - transformedPos.y) ** 2);
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestIndex = i;
+    }
+  }
+  
+  // 周辺を細かくチェック
+  const searchRange = Math.min(50, positions.length);
+  const startIdx = Math.max(0, nearestIndex - searchRange);
+  const endIdx = Math.min(positions.length - 1, nearestIndex + searchRange);
+  
+  for (let i = startIdx; i <= endIdx; i++) {
+    const transformedPos = applyTransform(positions[i].x, positions[i].y);
+    const distance = Math.sqrt((mouseX - transformedPos.x) ** 2 + (mouseY - transformedPos.y) ** 2);
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestIndex = i;
+    }
+  }
+  
+  currentTimeIndex = nearestIndex;
+  document.getElementById('timeSlider').value = currentTimeIndex;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+// 座標変換（ズーム・パン・回転を適用）
+function applyTransform(x, y) {
+  const { minX, minY, scale, margin, centerX, centerY } = canvasScaleInfo;
+  
+  // ワールド座標からキャンバス座標への基本変換
+  let cx = margin + (x - minX) * scale;
+  let cy = margin + (y - minY) * scale;
+  
+  // 中心を原点とする座標系に変換
+  cx -= centerX;
+  cy -= centerY;
+  
+  // 回転を適用
+  const rotatedX = cx * Math.cos(mapRotation) - cy * Math.sin(mapRotation);
+  const rotatedY = cx * Math.sin(mapRotation) + cy * Math.cos(mapRotation);
+  
+  // ズームを適用
+  const zoomedX = rotatedX * mapZoom;
+  const zoomedY = rotatedY * mapZoom;
+  
+  // パンとセンターオフセットを適用
+  const finalX = zoomedX + centerX + mapOffsetX;
+  const finalY = zoomedY + centerY + mapOffsetY;
+  
+  return { x: finalX, y: finalY };
+}
+
+// CSVアップロード処理
+function handleCSVUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const text = event.target.result;
+    const lines = text.trim().split(/\r?\n/);
+    headers = lines[0].split(',');
+    csvData = lines.slice(1).map(line => line.split(','));
+    
+    // メディアンフィルタをリセット
+    filteredData = [];
+    if (medianFilterEnabled) {
+      applyMedianFilter();
+    }
+    
+    calculatePositions();
+    setupTimeSlider();
+    updateStats();
+    updateTableDisplay();
+    drawControlGraph();
+    drawSensorGraph();
+    
+    // マーカー検出
+    detectAllMarkers();
+    
+    drawTrack();
+  };
+  reader.readAsText(file);
+}
+
+// 位置計算
+function calculatePositions() {
+  positions = [];
+  let x = 0, y = 0, theta = 0;
+  const scale = 1;
+  
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[headers.indexOf('Thr')]);
+    const str = parseFloat(row[headers.indexOf('Str')]);
+    const dt = (i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04) * timeScale;
+    
+    // 速度と基準旋回半径を取得（キャリブレーション係数を適用）
+    const speed = interpolateMap(speedMap, thr) * 1000 * speedScale; // mm/s
+    const baseRadius = interpolateMap(radiusMap, str) * radiusGain; // mm
+    
+    // 速度依存係数を取得（タミヤ エアロバンテの特性）
+    const speedCoef = interpolateMap(radiusSpeedCoefMap, thr);
+    
+    // 実際の旋回半径を計算（速度が高いほど旋回半径が大きくなる）
+    const actualRadius = baseRadius * speedCoef; // mm
+
+    // 旋回半径から角速度を計算
+    // omega = v / r (角速度 = 速度 / 旋回半径)
+    // 重要：操舵指示の符号を考慮（負=左旋回、正=右旋回）
+    const direction = str >= 0 ? -1 : 1; // 右旋回は負の角速度、左旋回は正の角速度
+    const omega = (actualRadius !== 0) ? direction * speed / actualRadius : 0; // rad/s
+
+    // 角度を更新
+    theta += omega * dt;
+    
+    // 位置を更新
+    x += speed * dt * scale * Math.cos(theta);
+    y += speed * dt * scale * Math.sin(theta);
+    
+    // デバッグ: 最初の数行を出力
+    if (i < 5) {
+      console.log(`[${i}] thr=${thr}%, str=${str}%, speed=${speed.toFixed(1)}mm/s, baseR=${baseRadius.toFixed(1)}mm, coef=${speedCoef.toFixed(2)}, actualR=${actualRadius.toFixed(1)}mm, omega=${omega.toFixed(4)}rad/s, dt=${dt.toFixed(4)}s, theta=${theta.toFixed(3)}rad, x=${x.toFixed(1)}mm, y=${y.toFixed(1)}mm`);
+    }
+
+    positions.push({x, y, theta, row});
+  });
+  
+  console.log(`位置計算完了: ${positions.length}点, 最終位置 x=${x.toFixed(1)}mm, y=${y.toFixed(1)}mm`);
+  console.log(`キャリブレーション: 速度=${speedScale}x, 旋回半径=${radiusGain}x, 時間=${timeScale}x`);
+  console.log(`速度依存係数適用: タミヤ エアロバンテの特性反映（高速時アンダーステア）`);
+}
+
+// UNIX時刻を時:分:秒.ミリ秒形式に変換
+function formatUnixTime(unixTime) {
+  const date = new Date(unixTime * 1000);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+// タイムスライダー設定
+function setupTimeSlider() {
+  const timeSlider = document.getElementById('timeSlider');
+  timeSlider.max = csvData.length - 1;
+  timeSlider.value = csvData.length - 1;
+  currentTimeIndex = csvData.length - 1;
+  
+  if (csvData.length > 0) {
+    const startUnixTime = parseFloat(csvData[0][0]);
+    const endUnixTime = parseFloat(csvData[csvData.length - 1][0]);
+    
+    const startTime = formatUnixTime(startUnixTime);
+    const endTime = formatUnixTime(endUnixTime);
+    
+    document.getElementById('startTime').textContent = `開始: ${startTime}`;
+    document.getElementById('endTime').textContent = `終了: ${endTime}`;
+    
+    generateTimeTicks();
+  }
+  
+  updateTimeDisplay();
+}
+
+// 時刻ティックを生成
+function generateTimeTicks() {
+  const ticksContainer = document.getElementById('timeTicks');
+  ticksContainer.innerHTML = '';
+  
+  const numTicks = 11;
+  
+  for (let i = 0; i < numTicks; i++) {
+    const percentage = i / (numTicks - 1);
+    const dataIndex = Math.floor(percentage * (csvData.length - 1));
+    const unixTime = parseFloat(csvData[dataIndex][0]);
+    const formattedTime = formatUnixTime(unixTime);
+    
+    const tickDiv = document.createElement('div');
+    tickDiv.className = 'time-tick';
+    
+    const tickLine = document.createElement('div');
+    tickLine.className = 'time-tick-line';
+    
+    const tickLabel = document.createElement('div');
+    tickLabel.className = 'time-tick-label';
+    tickLabel.textContent = formattedTime;
+    
+    tickDiv.appendChild(tickLine);
+    tickDiv.appendChild(tickLabel);
+    ticksContainer.appendChild(tickDiv);
+  }
+}
+
+// 時刻表示更新
+function updateTimeDisplay() {
+  if (csvData.length > 0 && currentTimeIndex < csvData.length) {
+    const unixTime = parseFloat(csvData[currentTimeIndex][0]);
+    const formattedTime = formatUnixTime(unixTime);
+    document.getElementById('timeDisplay').textContent = `時刻: ${formattedTime}`;
+    scrollToCurrentRow();
+    drawControlGraph();
+    drawSensorGraph();
+  }
+}
+
+// 再生制御
+function togglePlayback() {
+  isPlaying = !isPlaying;
+  const playBtn = document.getElementById('playBtn');
+  
+  if (isPlaying) {
+    playBtn.textContent = '⏸ 一時停止';
+    playbackInterval = setInterval(() => {
+      currentTimeIndex++;
+      if (currentTimeIndex >= csvData.length - 1) {
+        currentTimeIndex = csvData.length - 1;
+        togglePlayback();
+        return;
+      }
+      document.getElementById('timeSlider').value = currentTimeIndex;
+      updateTimeDisplay();
+      drawTrack();
+    }, 50);
+  } else {
+    playBtn.textContent = '▶ 再生';
+    if (playbackInterval) {
+      clearInterval(playbackInterval);
+      playbackInterval = null;
+    }
+  }
+}
+
+function resetPlayback() {
+  currentTimeIndex = 0;
+  document.getElementById('timeSlider').value = 0;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+function jumpToEnd() {
+  currentTimeIndex = csvData.length - 1;
+  document.getElementById('timeSlider').value = currentTimeIndex;
+  updateTimeDisplay();
+  drawTrack();
+}
+
+// マウス処理
+function handleGraphMouseDown(e, graphType) {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const point = findNearestPoint(x, y, graphType);
+  if (point && getDistance(x, y, point.canvasX, point.canvasY) < 15) {
+    isDragging = true;
+    dragPoint = point;
+    dragGraph = graphType;
+    e.target.style.cursor = 'grabbing';
+  }
+}
+
+function handleGraphMouseMove(e, graphType) {
+  if (!isDragging || dragGraph !== graphType) return;
+  
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const dataValue = canvasToData(x, y, graphType);
+  if (dataValue) {
+    dragPoint.key = dataValue.x;
+    dragPoint.value = dataValue.y;
+    
+    if (graphType === 'speed') {
+      speedMap.sort((a, b) => a.key - b.key);
+    } else if (graphType === 'radius') {
+      radiusMap.sort((a, b) => a.key - b.key);
+    } else if (graphType === 'speedCoef') {
+      radiusSpeedCoefMap.sort((a, b) => a.key - b.key);
+    }
+    
+    drawAllGraphs();
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+function handleGraphMouseUp(e, graphType) {
+  if (isDragging && dragGraph === graphType) {
+    isDragging = false;
+    dragPoint = null;
+    dragGraph = null;
+    e.target.style.cursor = 'crosshair';
+  }
+}
+
+function handleGraphDoubleClick(e, graphType) {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const dataValue = canvasToData(x, y, graphType);
+  if (dataValue) {
+    if (graphType === 'speed') {
+      speedMap.push({key: dataValue.x, value: dataValue.y});
+      speedMap.sort((a, b) => a.key - b.key);
+    } else if (graphType === 'radius') {
+      radiusMap.push({key: dataValue.x, value: dataValue.y});
+      radiusMap.sort((a, b) => a.key - b.key);
+    } else if (graphType === 'speedCoef') {
+      radiusSpeedCoefMap.push({key: dataValue.x, value: dataValue.y});
+      radiusSpeedCoefMap.sort((a, b) => a.key - b.key);
+    }
+    drawAllGraphs();
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// 座標変換（改善版 - 範囲設定を使用）
+function canvasToData(x, y, graphType) {
+  let canvas, range;
+  
+  if (graphType === 'speed') {
+    canvas = speedGraph;
+    range = graphRanges.speed;
+  } else if (graphType === 'radius') {
+    canvas = radiusGraph;
+    range = graphRanges.radius;
+  } else if (graphType === 'speedCoef') {
+    canvas = speedCoefGraph;
+    range = graphRanges.speedCoef;
+  }
+  
+  const marginLeft = graphType === 'radius' ? 65 : 50;
+  const marginRight = 50;
+  const marginTop = 50;
+  const marginBottom = 50;
+  const width = canvas.width - marginLeft - marginRight;
+  const height = canvas.height - marginTop - marginBottom;
+  
+  const dataX = range.xMin + ((x - marginLeft) / width) * (range.xMax - range.xMin);
+  const dataY = range.yMax - ((y - marginTop) / height) * (range.yMax - range.yMin);
+  
+  return {
+    x: Math.max(range.xMin, Math.min(range.xMax, dataX)),
+    y: Math.max(range.yMin, Math.min(range.yMax, dataY))
+  };
+}
+
+function dataToCanvas(x, y, graphType) {
+  let canvas, range;
+  
+  if (graphType === 'speed') {
+    canvas = speedGraph;
+    range = graphRanges.speed;
+  } else if (graphType === 'radius') {
+    canvas = radiusGraph;
+    range = graphRanges.radius;
+  } else if (graphType === 'speedCoef') {
+    canvas = speedCoefGraph;
+    range = graphRanges.speedCoef;
+  }
+  
+  const marginLeft = graphType === 'radius' ? 65 : 50;
+  const marginRight = 50;
+  const marginTop = 50;
+  const marginBottom = 50;
+  const width = canvas.width - marginLeft - marginRight;
+  const height = canvas.height - marginTop - marginBottom;
+  
+  const canvasX = marginLeft + ((x - range.xMin) / (range.xMax - range.xMin)) * width;
+  const canvasY = marginTop + ((range.yMax - y) / (range.yMax - range.yMin)) * height;
+  
+  return {x: canvasX, y: canvasY};
+}
+
+function findNearestPoint(x, y, graphType) {
+  let map;
+  
+  if (graphType === 'speed') {
+    map = speedMap;
+  } else if (graphType === 'radius') {
+    map = radiusMap;
+  } else if (graphType === 'speedCoef') {
+    map = radiusSpeedCoefMap;
+  }
+  let nearest = null;
+  let minDistance = Infinity;
+  
+  map.forEach(point => {
+    const canvasPos = dataToCanvas(point.key, point.value, graphType);
+    const distance = getDistance(x, y, canvasPos.x, canvasPos.y);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = point;
+    }
+  });
+  
+  if (nearest) {
+    const canvasPos = dataToCanvas(nearest.key, nearest.value, graphType);
+    nearest.canvasX = canvasPos.x;
+    nearest.canvasY = canvasPos.y;
+  }
+  
+  return nearest;
+}
+
+function getDistance(x1, y1, x2, y2) {
+  return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+}
+
+// グラフ描画
+function drawAllGraphs() {
+  drawGraph('speed');
+  drawGraph('radius');
+  drawGraph('speedCoef');
+}
+
+function drawGraph(graphType) {
+  let canvas, ctx, map, range;
+  
+  if (graphType === 'speed') {
+    canvas = speedGraph;
+    ctx = speedCtx;
+    map = speedMap;
+    range = graphRanges.speed;
+  } else if (graphType === 'radius') {
+    canvas = radiusGraph;
+    ctx = radiusCtx;
+    map = radiusMap;
+    range = graphRanges.radius;
+  } else if (graphType === 'speedCoef') {
+    canvas = speedCoefGraph;
+    ctx = speedCoefCtx;
+    map = radiusSpeedCoefMap;
+    range = graphRanges.speedCoef;
+  }
+  
+  // 旋回半径グラフは左マージンを広く（大きい数値用）
+  const marginLeft = graphType === 'radius' ? 65 : 50;
+  const marginRight = 50;
+  const marginTop = 50;
+  const marginBottom = 50;
+  const width = canvas.width - marginLeft - marginRight;
+  const height = canvas.height - marginTop - marginBottom;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // グリッド描画
+  drawGrid(ctx, canvas, graphType, marginLeft, marginTop, width, height, range);
+  
+  // 軸ラベル描画
+  drawAxisLabels(ctx, canvas, graphType, marginLeft, marginTop, marginBottom, width, height, range);
+  
+  // データ線描画
+  if (graphType === 'speed') {
+    ctx.strokeStyle = '#ff6b6b';
+  } else if (graphType === 'radius') {
+    ctx.strokeStyle = '#4ecdc4';
+  } else if (graphType === 'speedCoef') {
+    ctx.strokeStyle = '#ffa500';
+  }
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  
+  map.forEach((point, index) => {
+    const pos = dataToCanvas(point.key, point.value, graphType);
+    if (index === 0) {
+      ctx.moveTo(pos.x, pos.y);
+    } else {
+      ctx.lineTo(pos.x, pos.y);
+    }
+  });
+  ctx.stroke();
+  
+  // データ点描画
+  map.forEach(point => {
+    const pos = dataToCanvas(point.key, point.value, graphType);
+    if (graphType === 'speed') {
+      ctx.fillStyle = '#ff6b6b';
+    } else if (graphType === 'radius') {
+      ctx.fillStyle = '#4ecdc4';
+    } else if (graphType === 'speedCoef') {
+      ctx.fillStyle = '#ffa500';
+    }
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+function drawGrid(ctx, canvas, graphType, marginLeft, marginTop, width, height, range) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  
+  // 縦線
+  for (let i = 0; i <= 10; i++) {
+    const x = marginLeft + (i / 10) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, marginTop);
+    ctx.lineTo(x, marginTop + height);
+    ctx.stroke();
+  }
+  
+  // 横線
+  for (let i = 0; i <= 10; i++) {
+    const y = marginTop + (i / 10) * height;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, y);
+    ctx.lineTo(marginLeft + width, y);
+    ctx.stroke();
+  }
+  
+  // 枠線
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(marginLeft, marginTop, width, height);
+}
+
+function drawAxisLabels(ctx, canvas, graphType, marginLeft, marginTop, marginBottom, width, height, range) {
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = 'bold 12px Arial';
+  
+  // X軸ラベル
+  for (let i = 0; i <= 10; i += 2) {
+    const x = marginLeft + (i / 10) * width;
+    const value = range.xMin + (i / 10) * (range.xMax - range.xMin);
+    ctx.textAlign = 'center';
+    ctx.fillText(value.toFixed(0), x, marginTop + height + 22);
+  }
+  
+  // Y軸ラベル
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 10; i += 2) {
+    const y = marginTop + ((10 - i) / 10) * height;
+    const value = range.yMin + (i / 10) * (range.yMax - range.yMin);
+    
+    // フォーマット：旋回半径→整数、速度→小数点1桁、係数→小数点2桁
+    let labelText;
+    if (graphType === 'radius') {
+      labelText = value.toFixed(0);
+    } else if (graphType === 'speedCoef') {
+      labelText = value.toFixed(2);
+    } else {
+      labelText = value.toFixed(1);
+    }
+    ctx.fillText(labelText, marginLeft - 12, y + 4);
+  }
+  
+  // 軸タイトル
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'center';
+  let xAxisLabel, yAxisLabel;
+  
+  if (graphType === 'speed') {
+    xAxisLabel = 'Throttle (%)';
+    yAxisLabel = 'Speed (m/s)';
+  } else if (graphType === 'radius') {
+    xAxisLabel = 'Steering (%)';
+    yAxisLabel = 'Radius (mm)';
+  } else if (graphType === 'speedCoef') {
+    xAxisLabel = 'Throttle (%)';
+    yAxisLabel = 'Coefficient';
+  }
+  
+  ctx.fillText(xAxisLabel, marginLeft + width / 2, canvas.height - 8);
+  
+  ctx.save();
+  ctx.translate(20, marginTop + height / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(yAxisLabel, 0, 0);
+  ctx.restore();
+}
+
+// ポイント追加
+function addSpeedPoint() {
+  const range = graphRanges.speed;
+  const newKey = speedMap.length > 0 ? speedMap[speedMap.length - 1].key + 10 : (range.xMin + range.xMax) / 2;
+  const newValue = speedMap.length > 0 ? speedMap[speedMap.length - 1].value + 0.5 : (range.yMin + range.yMax) / 2;
+  speedMap.push({key: Math.min(newKey, range.xMax), value: Math.min(newValue, range.yMax)});
+  speedMap.sort((a, b) => a.key - b.key);
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+function addRadiusPoint() {
+  const range = graphRanges.radius;
+  const newKey = radiusMap.length > 0 ? radiusMap[radiusMap.length - 1].key + 25 : 0;
+  const newValue = radiusMap.length > 0 ? radiusMap[radiusMap.length - 1].value : 1000;
+  radiusMap.push({key: Math.min(newKey, range.xMax), value: Math.min(Math.max(newValue, range.yMin), range.yMax)});
+  radiusMap.sort((a, b) => a.key - b.key);
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+// マップリセット
+function resetSpeedMap() {
+  speedMap = [
+    {key: 0, value: 0}, {key: 10, value: 0.1}, {key: 20, value: 0.2},
+    {key: 30, value: 0.5}, {key: 40, value: 0.6}, {key: 50, value: 1.75},
+    {key: 60, value: 2.0}, {key: 70, value: 2.2}, {key: 80, value: 2.875},
+    {key: 90, value: 3.375}, {key: 100, value: 4.375}
+  ];
+  drawAllGraphs();
+  calculatePositions();
+  drawTrack();
+}
+
+function resetRadiusMap() {
+  radiusMap = [
+    {key: -100, value: 450}, {key: -90, value: 500}, {key: -80, value: 600},
+    {key: -70, value: 900}, {key: -60, value: 1200}, {key: -50, value: 1800},
+    {key: -40, value: 2500}, {key: -30, value: 3500}, {key: -20, value: 5000},
+    {key: -10, value: 8000}, {key: 0, value: 100000},
+    {key: 10, value: 8000}, {key: 20, value: 5000}, {key: 30, value: 3500},
+    {key: 40, value: 2500}, {key: 50, value: 1800}, {key: 60, value: 1200},
+    {key: 70, value: 900}, {key: 80, value: 600}, {key: 90, value: 500},
+    {key: 100, value: 450}
+  ];
+  drawAllGraphs();
+  updateRadiusTable();
+  calculatePositions();
+  drawTrack();
+}
+
+// モード切り替え機能
+function toggleSpeedMapMode() {
+  speedMapMode = speedMapMode === 'graph' ? 'table' : 'graph';
+  const graphMode = document.getElementById('speedGraphMode');
+  const tableMode = document.getElementById('speedTableMode');
+  const btn = document.getElementById('speedModeBtn');
+  
+  if (speedMapMode === 'table') {
+    graphMode.style.display = 'none';
+    tableMode.style.display = 'block';
+    btn.textContent = '📋 テーブルモード';
+    btn.classList.add('active');
+    updateSpeedTable();
+  } else {
+    graphMode.style.display = 'block';
+    tableMode.style.display = 'none';
+    btn.textContent = '📊 グラフモード';
+    btn.classList.remove('active');
+  }
+}
+
+function toggleSpeedCoefMapMode() {
+  speedCoefMapMode = speedCoefMapMode === 'graph' ? 'table' : 'graph';
+  const graphMode = document.getElementById('speedCoefGraphMode');
+  const tableMode = document.getElementById('speedCoefTableMode');
+  const btn = document.getElementById('speedCoefModeBtn');
+  
+  if (speedCoefMapMode === 'table') {
+    graphMode.style.display = 'none';
+    tableMode.style.display = 'block';
+    btn.textContent = '📋 テーブルモード';
+    btn.classList.add('active');
+    updateSpeedCoefTable();
+  } else {
+    graphMode.style.display = 'block';
+    tableMode.style.display = 'none';
+    btn.textContent = '📊 グラフモード';
+    btn.classList.remove('active');
+  }
+}
+
+function toggleRadiusMapMode() {
+  radiusMapMode = radiusMapMode === 'graph' ? 'table' : 'graph';
+  const graphMode = document.getElementById('radiusGraphMode');
+  const tableMode = document.getElementById('radiusTableMode');
+  const btn = document.getElementById('radiusModeBtn');
+  
+  if (radiusMapMode === 'table') {
+    graphMode.style.display = 'none';
+    tableMode.style.display = 'block';
+    btn.textContent = '📋 テーブルモード';
+    btn.classList.add('active');
+    updateRadiusTable();
+  } else {
+    graphMode.style.display = 'block';
+    tableMode.style.display = 'none';
+    btn.textContent = '📊 グラフモード';
+    btn.classList.remove('active');
+  }
+}
+
+// テーブル更新機能
+function updateSpeedTable() {
+  const tbody = document.getElementById('speedTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  speedMap.forEach((point, index) => {
+    const row = tbody.insertRow();
+    
+    const cellKey = row.insertCell(0);
+    const inputKey = document.createElement('input');
+    inputKey.type = 'number';
+    inputKey.value = point.key;
+    inputKey.step = '1';
+    inputKey.onchange = () => updateSpeedMapPoint(index, 'key', parseFloat(inputKey.value));
+    cellKey.appendChild(inputKey);
+    
+    const cellValue = row.insertCell(1);
+    const inputValue = document.createElement('input');
+    inputValue.type = 'number';
+    inputValue.value = point.value;
+    inputValue.step = '0.1';
+    inputValue.onchange = () => updateSpeedMapPoint(index, 'value', parseFloat(inputValue.value));
+    cellValue.appendChild(inputValue);
+    
+    const cellAction = row.insertCell(2);
+    const btnDelete = document.createElement('button');
+    btnDelete.className = 'btn-delete';
+    btnDelete.textContent = '🗑️';
+    btnDelete.onclick = () => deleteSpeedMapPoint(index);
+    cellAction.appendChild(btnDelete);
+  });
+}
+
+function updateRadiusTable() {
+  const tbody = document.getElementById('radiusTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  radiusMap.forEach((point, index) => {
+    const row = tbody.insertRow();
+    
+    const cellKey = row.insertCell(0);
+    const inputKey = document.createElement('input');
+    inputKey.type = 'number';
+    inputKey.value = point.key;
+    inputKey.step = '1';
+    inputKey.onchange = () => updateRadiusMapPoint(index, 'key', parseFloat(inputKey.value));
+    cellKey.appendChild(inputKey);
+    
+    const cellValue = row.insertCell(1);
+    const inputValue = document.createElement('input');
+    inputValue.type = 'number';
+    inputValue.value = point.value;
+    inputValue.step = '10';
+    inputValue.onchange = () => updateRadiusMapPoint(index, 'value', parseFloat(inputValue.value));
+    cellValue.appendChild(inputValue);
+    
+    const cellAction = row.insertCell(2);
+    const btnDelete = document.createElement('button');
+    btnDelete.className = 'btn-delete';
+    btnDelete.textContent = '🗑️';
+    btnDelete.onclick = () => deleteRadiusMapPoint(index);
+    cellAction.appendChild(btnDelete);
+  });
+}
+
+function updateSpeedCoefTable() {
+  const tbody = document.getElementById('speedCoefTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  radiusSpeedCoefMap.forEach((point, index) => {
+    const row = tbody.insertRow();
+    
+    const cellKey = row.insertCell(0);
+    const inputKey = document.createElement('input');
+    inputKey.type = 'number';
+    inputKey.value = point.key;
+    inputKey.step = '1';
+    inputKey.onchange = () => updateSpeedCoefMapPoint(index, 'key', parseFloat(inputKey.value));
+    cellKey.appendChild(inputKey);
+    
+    const cellValue = row.insertCell(1);
+    const inputValue = document.createElement('input');
+    inputValue.type = 'number';
+    inputValue.value = point.value;
+    inputValue.step = '0.05';
+    inputValue.onchange = () => updateSpeedCoefMapPoint(index, 'value', parseFloat(inputValue.value));
+    cellValue.appendChild(inputValue);
+    
+    const cellAction = row.insertCell(2);
+    const btnDelete = document.createElement('button');
+    btnDelete.className = 'btn-delete';
+    btnDelete.textContent = '🗑️';
+    btnDelete.onclick = () => deleteSpeedCoefMapPoint(index);
+    cellAction.appendChild(btnDelete);
+  });
+}
+
+// ポイント更新機能
+function updateSpeedMapPoint(index, field, value) {
+  speedMap[index][field] = value;
+  speedMap.sort((a, b) => a.key - b.key);
+  updateSpeedTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+function updateRadiusMapPoint(index, field, value) {
+  radiusMap[index][field] = value;
+  
+  // 左右対称機能：正の側を編集したら、負の側にも自動反映
+  if (field === 'value') {
+    const currentKey = radiusMap[index].key;
+    if (currentKey >= 0) {
+      // 正の側を編集した場合、負の側を探して同じ値を設定
+      const mirrorKey = -currentKey;
+      const mirrorIndex = radiusMap.findIndex(p => p.key === mirrorKey);
+      if (mirrorIndex !== -1) {
+        radiusMap[mirrorIndex].value = value;
+      } else if (currentKey > 0) {
+        // 対応する負のキーがない場合は新規追加
+        radiusMap.push({key: mirrorKey, value: value});
+      }
+    }
+  } else if (field === 'key') {
+    // キーを編集した場合も左右対称を維持
+    const oldKey = radiusMap[index].key;
+    if (value >= 0 && oldKey >= 0) {
+      // 正の側のキーを変更した場合
+      const mirrorOldKey = -oldKey;
+      const mirrorIndex = radiusMap.findIndex(p => p.key === mirrorOldKey);
+      if (mirrorIndex !== -1 && value > 0) {
+        radiusMap[mirrorIndex].key = -value;
+      }
+    }
+  }
+  
+  radiusMap.sort((a, b) => a.key - b.key);
+  updateRadiusTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// ポイント追加機能
+function addSpeedPointTable() {
+  const lastPoint = speedMap[speedMap.length - 1];
+  const newKey = lastPoint ? lastPoint.key + 10 : 50;
+  const newValue = lastPoint ? lastPoint.value : 2.5;
+  speedMap.push({key: newKey, value: newValue});
+  speedMap.sort((a, b) => a.key - b.key);
+  updateSpeedTable();
+  drawAllGraphs();
+}
+
+function addRadiusPointTable() {
+  // 正の側の最大キーを探す
+  const positivePoints = radiusMap.filter(p => p.key > 0);
+  const lastPositivePoint = positivePoints.length > 0 ? positivePoints[positivePoints.length - 1] : null;
+  
+  const newKey = lastPositivePoint ? Math.min(lastPositivePoint.key + 10, 100) : 10;
+  const newValue = lastPositivePoint ? lastPositivePoint.value : 1000;
+  
+  // 正の側に追加
+  radiusMap.push({key: newKey, value: newValue});
+  
+  // 左右対称：負の側にも追加（0度以外）
+  if (newKey > 0) {
+    radiusMap.push({key: -newKey, value: newValue});
+  }
+  
+  radiusMap.sort((a, b) => a.key - b.key);
+  updateRadiusTable();
+  drawAllGraphs();
+}
+
+// ポイント削除機能
+function deleteSpeedMapPoint(index) {
+  if (speedMap.length <= 2) {
+    alert('最低2つのポイントが必要です。');
+    return;
+  }
+  speedMap.splice(index, 1);
+  updateSpeedTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+function deleteRadiusMapPoint(index) {
+  if (radiusMap.length <= 3) {
+    alert('最低3つのポイント（中心+左右）が必要です。');
+    return;
+  }
+  
+  const deletedKey = radiusMap[index].key;
+  
+  // 削除実行
+  radiusMap.splice(index, 1);
+  
+  // 左右対称：正の側を削除したら、対応する負の側も削除
+  if (deletedKey > 0) {
+    const mirrorKey = -deletedKey;
+    const mirrorIndex = radiusMap.findIndex(p => p.key === mirrorKey);
+    if (mirrorIndex !== -1) {
+      radiusMap.splice(mirrorIndex, 1);
+    }
+  } else if (deletedKey < 0) {
+    // 負の側を削除したら、対応する正の側も削除
+    const mirrorKey = -deletedKey;
+    const mirrorIndex = radiusMap.findIndex(p => p.key === mirrorKey);
+    if (mirrorIndex !== -1) {
+      radiusMap.splice(mirrorIndex, 1);
+    }
+  }
+  
+  updateRadiusTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    calculatePositions();
+    drawTrack();
+  }
+}
+
+// 速度依存係数マップ用関数
+function updateSpeedCoefMapPoint(index, field, value) {
+  radiusSpeedCoefMap[index][field] = value;
+  radiusSpeedCoefMap.sort((a, b) => a.key - b.key);
+  console.log('速度依存係数マップ更新:', radiusSpeedCoefMap);
+  updateSpeedCoefTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    console.log('位置再計算開始...');
+    calculatePositions();
+    drawTrack();
+    console.log('位置再計算完了、マップ更新');
+  }
+}
+
+function addSpeedCoefPointTable() {
+  const lastPoint = radiusSpeedCoefMap[radiusSpeedCoefMap.length - 1];
+  const newKey = lastPoint ? Math.min(lastPoint.key + 10, 100) : 50;
+  const newValue = lastPoint ? lastPoint.value : 1.2;
+  radiusSpeedCoefMap.push({key: newKey, value: newValue});
+  radiusSpeedCoefMap.sort((a, b) => a.key - b.key);
+  console.log('速度依存係数ポイント追加:', {key: newKey, value: newValue});
+  updateSpeedCoefTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    console.log('位置再計算開始...');
+    calculatePositions();
+    drawTrack();
+    console.log('位置再計算完了、マップ更新');
+  }
+}
+
+function addSpeedCoefPoint() {
+  const range = graphRanges.speedCoef;
+  const newKey = radiusSpeedCoefMap.length > 0 ? radiusSpeedCoefMap[radiusSpeedCoefMap.length - 1].key + 10 : 50;
+  const newValue = radiusSpeedCoefMap.length > 0 ? radiusSpeedCoefMap[radiusSpeedCoefMap.length - 1].value : 1.2;
+  const newPoint = {key: Math.min(newKey, range.xMax), value: Math.min(Math.max(newValue, range.yMin), range.yMax)};
+  radiusSpeedCoefMap.push(newPoint);
+  radiusSpeedCoefMap.sort((a, b) => a.key - b.key);
+  console.log('速度依存係数ポイント追加（グラフ）:', newPoint);
+  drawAllGraphs();
+  console.log('位置再計算開始...');
+  calculatePositions();
+  drawTrack();
+  console.log('位置再計算完了、マップ更新');
+}
+
+function deleteSpeedCoefMapPoint(index) {
+  if (radiusSpeedCoefMap.length <= 2) {
+    alert('最低2つのポイントが必要です。');
+    return;
+  }
+  console.log('速度依存係数ポイント削除:', radiusSpeedCoefMap[index]);
+  radiusSpeedCoefMap.splice(index, 1);
+  updateSpeedCoefTable();
+  drawAllGraphs();
+  if (csvData.length > 0) {
+    console.log('位置再計算開始...');
+    calculatePositions();
+    drawTrack();
+    console.log('位置再計算完了、マップ更新');
+  }
+}
+
+function resetSpeedCoefMap() {
+  radiusSpeedCoefMap = [
+    {key: 0,   value: 1.0},    // 停止：設計通り
+    {key: 10,  value: 1.0},    // 極低速：設計通り
+    {key: 20,  value: 1.0},    // 低速：設計通り
+    {key: 30,  value: 1.0},    // 低速：設計通り（実測データ基準）
+    {key: 40,  value: 1.1},    // 推定値
+    {key: 50,  value: 1.11},   // 実測: 450mm→500mm (500/450=1.11)
+    {key: 60,  value: 1.2},    // 推定値
+    {key: 70,  value: 1.44},   // 実測: 450mm→650mm (650/450=1.44)
+    {key: 80,  value: 1.56},   // 実測: 450mm→700mm (700/450=1.56)
+    {key: 90,  value: 2.67},   // 実測: 450mm→1200mm (1200/450=2.67)
+    {key: 100, value: 3.33}    // 実測: 450mm→1500mm (1500/450=3.33)
+  ];
+  console.log('速度依存係数マップリセット:', radiusSpeedCoefMap);
+  drawAllGraphs();
+  updateSpeedCoefTable();
+  console.log('位置再計算開始...');
+  calculatePositions();
+  drawTrack();
+  console.log('位置再計算完了、マップ更新');
+}
+
+// マップエクスポート/インポート
+function exportMaps() {
+  const maps = {speedMap, radiusMap, radiusSpeedCoefMap, sensorAngles, graphRanges};
+  const dataStr = JSON.stringify(maps, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'minicar_maps_v4.json';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function importMaps() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const maps = JSON.parse(event.target.result);
+        speedMap = maps.speedMap;
+        radiusMap = maps.radiusMap || maps.steeringMap; // 旧形式との互換性のため
+        
+        // 速度依存係数マップの読み込み（なければデフォルト値）
+        if (maps.radiusSpeedCoefMap) {
+          radiusSpeedCoefMap = maps.radiusSpeedCoefMap;
+        } else {
+          // デフォルト値（タミヤ エアロバンテ）
+          radiusSpeedCoefMap = [
+            {key: 0, value: 1.0}, {key: 10, value: 1.0}, {key: 20, value: 1.0},
+            {key: 30, value: 1.0}, {key: 40, value: 1.1}, {key: 50, value: 1.11},
+            {key: 60, value: 1.2}, {key: 70, value: 1.44}, {key: 80, value: 1.56},
+            {key: 90, value: 2.67}, {key: 100, value: 3.33}
+          ];
+        }
+        
+        if (maps.sensorAngles) {
+          sensorAngles = maps.sensorAngles;
+          Object.keys(sensorAngles).forEach(sensor => {
+            document.getElementById(`angle${sensor}`).value = sensorAngles[sensor];
+            document.querySelector(`#angle${sensor}`).previousElementSibling.value = sensorAngles[sensor];
+          });
+        }
+        if (maps.graphRanges) {
+          graphRanges = maps.graphRanges;
+          document.getElementById('speedXMin').value = graphRanges.speed.xMin;
+          document.getElementById('speedXMax').value = graphRanges.speed.xMax;
+          document.getElementById('speedYMin').value = graphRanges.speed.yMin;
+          document.getElementById('speedYMax').value = graphRanges.speed.yMax;
+          const radiusRange = graphRanges.radius || graphRanges.steering;
+          if (radiusRange) {
+            document.getElementById('radiusXMin').value = radiusRange.xMin;
+            document.getElementById('radiusXMax').value = radiusRange.xMax;
+            document.getElementById('radiusYMin').value = radiusRange.yMin;
+            document.getElementById('radiusYMax').value = radiusRange.yMax;
+          }
+          if (graphRanges.speedCoef) {
+            document.getElementById('speedCoefXMin').value = graphRanges.speedCoef.xMin;
+            document.getElementById('speedCoefXMax').value = graphRanges.speedCoef.xMax;
+            document.getElementById('speedCoefYMin').value = graphRanges.speedCoef.yMin;
+            document.getElementById('speedCoefYMax').value = graphRanges.speedCoef.yMax;
+          }
+        }
+        drawAllGraphs();
+        updateSpeedTable();
+        updateRadiusTable();
+        updateSpeedCoefTable();
+        calculatePositions();
+        drawTrack();
+      } catch (error) {
+        alert('ファイルの読み込みに失敗しました: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// 統計情報更新
+function updateStats() {
+  if (!csvData.length) return;
+  
+  document.getElementById('totalPoints').textContent = csvData.length;
+  
+  let totalDistance = 0;
+  let maxSpeed = 0;
+  let totalSpeed = 0;
+  
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[headers.indexOf('Thr')]);
+    const speed = interpolateMap(speedMap, thr);
+    const dt = i > 0 ? (parseFloat(row[0]) - parseFloat(csvData[i-1][0])) : 0.04;
+    
+    totalDistance += speed * dt;
+    maxSpeed = Math.max(maxSpeed, speed);
+    totalSpeed += speed;
+  });
+  
+  document.getElementById('trackLength').textContent = totalDistance.toFixed(2) + 'm';
+  document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2) + 'm/s';
+  document.getElementById('avgSpeed').textContent = (totalSpeed / csvData.length).toFixed(2) + 'm/s';
+}
+
+// 軌跡描画（最重要関数）
+function drawTrack() {
+  const canvas = document.getElementById('trackCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!positions.length) return;
+
+  const activeSensors = Array.from(document.querySelectorAll('.sensorCheckbox:checked')).map(cb => cb.value);
+
+  const xs = positions.map(p => p.x);
+  const ys = positions.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  
+  const margin = 50;  // グリッドエリアを広げるため縮小
+  const scaleX = (canvas.width - 2 * margin) / (maxX - minX + VEHICLE_LENGTH * 2);
+  const scaleY = (canvas.height - 2 * margin) / (maxY - minY + VEHICLE_LENGTH * 2);
+  const scale = Math.min(scaleX, scaleY);
+  
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  
+  // スケール情報を保存（クリック処理で使用）
+  canvasScaleInfo = { minX, minY, scale, margin, centerX, centerY };
+
+  // 変換を適用して描画
+  ctx.save();
+  ctx.translate(centerX + mapOffsetX, centerY + mapOffsetY);
+  ctx.rotate(mapRotation);
+  ctx.scale(mapZoom, mapZoom);
+  ctx.translate(-centerX, -centerY);
+
+  // 背景グリッド（ズームに応じて自動調整）
+  // ズームレベルに応じてグリッド分割数を調整
+  let gridDivisions;
+  if (mapZoom < 0.3) {
+    gridDivisions = 10;  // 超広域表示
+  } else if (mapZoom < 0.6) {
+    gridDivisions = 15;  // 広域表示
+  } else if (mapZoom < 1.5) {
+    gridDivisions = 20;  // 通常表示
+  } else if (mapZoom < 3) {
+    gridDivisions = 30;  // 拡大表示
+  } else if (mapZoom < 5) {
+    gridDivisions = 40;  // 高拡大表示
+  } else {
+    gridDivisions = 50;  // 超高拡大表示
+  }
+  
+  // グリッド範囲を倍に拡大（XY両軸方向）
+  const gridStartX = margin - (canvas.width - 2 * margin) / 2;
+  const gridEndX = canvas.width - margin + (canvas.width - 2 * margin) / 2;
+  const gridStartY = margin - (canvas.height - 2 * margin) / 2;
+  const gridEndY = canvas.height - margin + (canvas.height - 2 * margin) / 2;
+  const gridWidth = gridEndX - gridStartX;
+  const gridHeight = gridEndY - gridStartY;
+  
+  // グリッド間隔の実サイズを計算（mm単位）
+  const canvasGridSpacing = gridWidth / gridDivisions;
+  const realGridSpacing = canvasGridSpacing / (scale * mapZoom);
+  
+  // グリッド情報を保存（スケール情報表示用）
+  canvasScaleInfo.gridSpacing = realGridSpacing;
+  
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1 / mapZoom;
+  
+  // X軸方向のグリッド線
+  for(let i = 0; i <= gridDivisions; i++){
+    const x = gridStartX + i * gridWidth / gridDivisions;
+    ctx.beginPath();
+    ctx.moveTo(x, gridStartY);
+    ctx.lineTo(x, gridEndY);
+    ctx.stroke();
+  }
+    
+  // Y軸方向のグリッド線
+  for(let i = 0; i <= gridDivisions; i++){
+    const y = gridStartY + i * gridHeight / gridDivisions;
+    ctx.beginPath();
+    ctx.moveTo(gridStartX, y);
+    ctx.lineTo(gridEndX, y);
+    ctx.stroke();
+  }
+
+  // コース参照線を描画（凹型コース）
+  if (showCourseRef) {
+    const courseVertical = parseFloat(document.getElementById('courseVertical').value) * 1000; // m → mm
+    const courseHorizontal = parseFloat(document.getElementById('courseHorizontal').value) * 1000;
+    const courseWidth = parseFloat(document.getElementById('courseWidth').value) * 1000;
+    
+    // コース中心を計算
+    const courseCenterX = centerX;
+    const courseCenterY = centerY;
+    
+    // 凹型コースの外側ライン（時計回り）
+    ctx.strokeStyle = 'rgba(138,201,38,0.7)';
+    ctx.lineWidth = 3 / mapZoom;
+    ctx.setLineDash([10 / mapZoom, 5 / mapZoom]);
+    ctx.beginPath();
+    
+    const halfVert = courseVertical / 2;
+    const halfHoriz = courseHorizontal / 2;
+    
+    // スケールを適用
+    const refScale = scale;
+    
+    // 外側の矩形（左上から時計回り）
+    ctx.moveTo(courseCenterX - halfHoriz * refScale, courseCenterY - halfVert * refScale);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale, courseCenterY - halfVert * refScale);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale, courseCenterY + halfVert * refScale);
+    ctx.lineTo(courseCenterX - halfHoriz * refScale, courseCenterY + halfVert * refScale);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // 内側ライン（道幅分内側）
+    ctx.strokeStyle = 'rgba(138,201,38,0.5)';
+    ctx.beginPath();
+    const innerOffset = courseWidth * refScale;
+    ctx.moveTo(courseCenterX - halfHoriz * refScale + innerOffset, courseCenterY - halfVert * refScale + innerOffset);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale - innerOffset, courseCenterY - halfVert * refScale + innerOffset);
+    ctx.lineTo(courseCenterX + halfHoriz * refScale - innerOffset, courseCenterY + halfVert * refScale - innerOffset);
+    ctx.lineTo(courseCenterX - halfHoriz * refScale + innerOffset, courseCenterY + halfVert * refScale - innerOffset);
+    ctx.closePath();
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // 寸法表示
+    ctx.fillStyle = 'rgba(138,201,38,0.9)';
+    ctx.font = `${14 / mapZoom}px Arial`;
+    ctx.fillText(`${courseVertical/1000}m`, courseCenterX + halfHoriz * refScale + 10 / mapZoom, courseCenterY);
+    ctx.fillText(`${courseHorizontal/1000}m`, courseCenterX, courseCenterY - halfVert * refScale - 10 / mapZoom);
+  }
+
+  // 全時刻範囲の軌跡線を描画
+  ctx.strokeStyle = 'rgba(0,200,255,0.5)';
+  ctx.lineWidth = 2 / mapZoom;
+  ctx.beginPath();
+  positions.forEach((p, i) => {
+    const cx = margin + (p.x - minX) * scale;
+    const cy = margin + (p.y - minY) * scale;
+    if (i === 0) {
+      ctx.moveTo(cx, cy);
+    } else {
+      ctx.lineTo(cx, cy);
+    }
+  });
+  ctx.stroke();
+
+  // マーカーを描画（ひし形プロット - センサープロットより下に表示）
+  drawMarkers(ctx, minX, minY, scale, margin);
+
+  // センサーごとに点と線を描画
+  activeSensors.forEach(name => {
+    const idx = headers.indexOf(name);
+    if (idx < 0) return;
+    
+    const color = sensorColors[name];
+    const sensorAngleRad = (sensorAngles[name] || 0) * Math.PI / 180;
+    
+    let sensorPoints = [];
+    positions.forEach((p, i) => {
+      if (i % sensorDensity !== 0) return;
+      
+      const cx = margin + (p.x - minX) * scale;
+      const cy = margin + (p.y - minY) * scale;
+      
+      // メディアンフィルタが有効な場合はフィルタ済みデータを使用
+      const dataSource = (medianFilterEnabled && filteredData.length > 0) ? filteredData : csvData;
+      const distance = parseFloat(dataSource[i][idx]);
+      
+      const totalAngle = p.theta + sensorAngleRad;
+      const sx = cx + distance * scale * Math.cos(totalAngle);
+      const sy = cy + distance * scale * Math.sin(totalAngle);
+      
+      sensorPoints.push({x: sx, y: sy, index: i});
+    });
+    
+    // 線を描画
+    if (sensorPoints.length > 1) {
+      ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`;
+      ctx.lineWidth = sensorLineWidth / mapZoom;
+      ctx.beginPath();
+      sensorPoints.forEach((point, i) => {
+        if (i === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.stroke();
+    }
+    
+    // センサー点を描画（時刻に基づいて視覚的に変化）
+    sensorPoints.forEach(point => {
+      const timeDiff = point.index - currentTimeIndex;
+      let pointSize = sensorPointSize / mapZoom;
+      let pointColor = color;
+      let alpha = 0.95;
+      
+      if (timeDiff < 0) {
+        // 過去のプロット
+        const pastIndex = Math.abs(timeDiff);
+        
+        if (pastIndex <= pastPlotsCount * sensorDensity) {
+          // 過去pastPlotsCount個のプロット：順に小さくする
+          const ratio = 1 - (pastIndex / (pastPlotsCount * sensorDensity)) * 0.6;
+          pointSize = (sensorPointSize / mapZoom) * ratio;
+          alpha = 0.95 * ratio;
+        } else {
+          // それより過去：小さく灰色
+          pointSize = (sensorPointSize / mapZoom) * 0.3;
+          pointColor = {r: 128, g: 128, b: 128};
+          alpha = 0.4;
+        }
+      } else if (timeDiff > 0) {
+        // 未来のプロット
+        if (futurePlotsCount === 0) {
+          // 0指定の場合は全区間通常サイズ
+          pointSize = sensorPointSize / mapZoom;
+        alpha = 0.7;
+        } else {
+          const futureIndex = timeDiff;
+          if (futureIndex <= futurePlotsCount * sensorDensity) {
+            // 未来futurePlotsCount個のプロット：通常サイズ
+            pointSize = sensorPointSize / mapZoom;
+            alpha = 0.7;
+          } else {
+            // それより未来：小さく灰色
+            pointSize = (sensorPointSize / mapZoom) * 0.3;
+            pointColor = {r: 128, g: 128, b: 128};
+            alpha = 0.4;
+          }
+        }
+      }
+      
+      // ポイント描画
+      const grd = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, pointSize);
+      grd.addColorStop(0, `rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, ${alpha})`);
+      grd.addColorStop(1, `rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, 0)`);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    // 現在時刻のセンサー点を特に目立たせる
+    const currentPoint = sensorPoints.find(p => p.index === currentTimeIndex);
+    if (currentPoint) {
+      // 外側の光る輪
+      const outerGrd = ctx.createRadialGradient(currentPoint.x, currentPoint.y, 0, currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 3);
+      outerGrd.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`);
+      outerGrd.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, 0.4)`);
+      outerGrd.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+      ctx.fillStyle = outerGrd;
+      ctx.beginPath();
+      ctx.arc(currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 中心の明るい点
+      ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+      ctx.beginPath();
+      ctx.arc(currentPoint.x, currentPoint.y, (sensorPointSize / mapZoom) * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 白い縁取り
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.lineWidth = 2 / mapZoom;
+      ctx.stroke();
+    }
+  });
+
+  // 現在までの軌跡をハイライト
+  if (currentTimeIndex > 0) {
+    ctx.strokeStyle = 'rgba(0,255,255,0.9)';
+    ctx.lineWidth = 3 / mapZoom;
+    ctx.beginPath();
+    for (let i = 0; i <= currentTimeIndex && i < positions.length; i++) {
+      const p = positions[i];
+      const cx = margin + (p.x - minX) * scale;
+      const cy = margin + (p.y - minY) * scale;
+      if (i === 0) {
+        ctx.moveTo(cx, cy);
+      } else {
+        ctx.lineTo(cx, cy);
+      }
+    }
+    ctx.stroke();
+  }
+
+  // 現在の車両位置を描画
+  if (currentTimeIndex < positions.length) {
+    const currentPos = positions[currentTimeIndex];
+    const cx = margin + (currentPos.x - minX) * scale;
+    const cy = margin + (currentPos.y - minY) * scale;
+    
+    // 距離サークルを描画
+    drawDistanceCircles(ctx, cx, cy, scale);
+    
+    // 車両を描画
+    drawVehicle(ctx, cx, cy, currentPos.theta, scale / mapZoom);
+  }
+
+  ctx.restore();
+  
+  // 変換を適用しない要素（凡例、スケール情報、コンパス、メディアンフィルタボタン、注釈）
+  drawLegend(ctx, canvas, activeSensors);
+  drawScaleInfo(ctx, canvas, scale);
+  drawCompass(ctx, canvas);
+  drawMedianFilterButton(ctx, canvas);
+  
+  // 注釈を描画（変換の外で、手動で座標変換）
+  drawAnnotations(ctx, minX, minY, scale, margin, centerX, centerY);
+}
+
+// メディアンフィルタボタン描画
+function drawMedianFilterButton(ctx, canvas) {
+  const btnX = canvas.width - 80;
+  const btnY = 150;  // コンパスの下
+  const btnWidth = 120;
+  const btnHeight = 30;
+  
+  ctx.save();
+  
+  // ボタン背景
+  if (medianFilterEnabled) {
+    ctx.fillStyle = 'rgba(78,205,196,0.9)';
+  } else {
+    ctx.fillStyle = 'rgba(60,60,60,0.9)';
+  }
+  ctx.strokeStyle = medianFilterEnabled ? 'rgba(78,205,196,1)' : 'rgba(100,100,100,1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(btnX - btnWidth/2, btnY - btnHeight/2, btnWidth, btnHeight, 5);
+  ctx.fill();
+  ctx.stroke();
+  
+  // ボタンテキスト
+  ctx.fillStyle = medianFilterEnabled ? '#fff' : '#aaa';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(medianFilterEnabled ? '✓ Filter ON' : 'Filter OFF', btnX, btnY);
+  
+  ctx.restore();
+  
+  // ボタンの位置を保存（クリック判定用）
+  if (!canvas.medianBtnBounds) {
+    canvas.medianBtnBounds = {};
+  }
+  canvas.medianBtnBounds.x = btnX - btnWidth/2;
+  canvas.medianBtnBounds.y = btnY - btnHeight/2;
+  canvas.medianBtnBounds.width = btnWidth;
+  canvas.medianBtnBounds.height = btnHeight;
+}
+
+// コンパス描画
+function drawCompass(ctx, canvas) {
+  const compassX = canvas.width - 80;
+  const compassY = 80;
+  const compassRadius = 40;
+  
+  ctx.save();
+  
+  // 背景円
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.beginPath();
+  ctx.arc(compassX, compassY, compassRadius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 外枠
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  // 回転を適用
+  ctx.translate(compassX, compassY);
+  ctx.rotate(mapRotation);
+  
+  // 北を指す矢印（赤）
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath();
+  ctx.moveTo(0, -compassRadius * 0.7);
+  ctx.lineTo(-compassRadius * 0.2, 0);
+  ctx.lineTo(0, -compassRadius * 0.3);
+  ctx.lineTo(compassRadius * 0.2, 0);
+  ctx.closePath();
+  ctx.fill();
+  
+  // 南を指す矢印（白）
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(0, compassRadius * 0.7);
+  ctx.lineTo(-compassRadius * 0.2, 0);
+  ctx.lineTo(0, compassRadius * 0.3);
+  ctx.lineTo(compassRadius * 0.2, 0);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.restore();
+  
+  // N文字（常に上向き）
+  ctx.fillStyle = '#ff4444';
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', compassX, compassY - compassRadius - 15);
+}
+
+// スケール情報描画
+function drawScaleInfo(ctx, canvas, scale) {
+  const infoX = 20;
+  const infoY = 20;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(infoX - 10, infoY - 10, 220, 130);
+  
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('📏 スケール情報', infoX, infoY + 15);
+  
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px Arial';
+  ctx.fillText(`車両: ${VEHICLE_LENGTH}×${VEHICLE_WIDTH}mm`, infoX, infoY + 40);
+  ctx.fillText(`コース幅: 約${COURSE_WIDTH}mm`, infoX, infoY + 60);
+  ctx.fillText(`表示倍率: ×${(scale * mapZoom).toFixed(3)}`, infoX, infoY + 80);
+  ctx.fillText(`ズーム: ${mapZoom.toFixed(1)}x`, infoX, infoY + 100);
+  
+  const barLength = 100 * scale * mapZoom;
+  ctx.strokeStyle = '#4ecdc4';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(infoX, infoY + 115);
+  ctx.lineTo(infoX + barLength, infoY + 115);
+  ctx.stroke();
+  
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('100mm', infoX + barLength / 2, infoY + 110);
+}
+
+// 凡例描画
+function drawLegend(ctx, canvas, activeSensors) {
+  const legendX = canvas.width - 180;
+  const legendY = 170;  // コンパスの下に配置
+  const lineHeight = 25;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(legendX - 10, legendY - 10, 170, activeSensors.length * lineHeight + 50);
+  
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('センサー凡例', legendX, legendY + 15);
+  
+  ctx.font = '12px Arial';
+  activeSensors.forEach((name, i) => {
+    const color = sensorColors[name];
+    const y = legendY + 40 + i * lineHeight;
+    
+    ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+    ctx.beginPath();
+    ctx.arc(legendX + 10, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#fff';
+    const angle = sensorAngles[name] || 0;
+    ctx.fillText(`${name} (${angle}°)`, legendX + 25, y + 4);
+  });
+}
+
+// 距離サークル描画
+function drawDistanceCircles(ctx, x, y, scale) {
+  const distances = [500, 1000, 1500, 2000, 2500, 3000];
+  
+  ctx.save();
+  distances.forEach((dist, index) => {
+    const radius = dist * scale;
+    ctx.strokeStyle = `rgba(255,255,255,${0.3 - index * 0.07})`;
+    ctx.lineWidth = 1 / mapZoom;
+    ctx.setLineDash([5 / mapZoom, 5 / mapZoom]);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 距離ラベル
+    ctx.fillStyle = `rgba(255,255,255,${0.5 - index * 0.1})`;
+    ctx.font = `${10 / mapZoom}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${dist}mm`, x, y - radius - 3 / mapZoom);
+  });
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// マーカー描画（ひし形プロット）
+function drawMarkers(ctx, minX, minY, scale, margin) {
+  ctx.save();
+  
+  // 各ポイントでどのルールが該当するかを集計
+  const markerAtPoint = {};
+  
+  ['rule1', 'rule2', 'rule3'].forEach(rule => {
+    if (markerSettings[rule].enabled) {
+      markersByRule[rule].forEach(idx => {
+        if (!markerAtPoint[idx]) {
+          markerAtPoint[idx] = [];
+        }
+        markerAtPoint[idx].push(rule);
+      });
+    }
+  });
+  
+  // 各ポイントにひし形を描画
+  Object.keys(markerAtPoint).forEach(idx => {
+    const i = parseInt(idx);
+    if (i >= positions.length) return;
+    
+    const pos = positions[i];
+    const cx = margin + (pos.x - minX) * scale;
+    const cy = margin + (pos.y - minY) * scale;
+    
+    const rules = markerAtPoint[idx];
+    const count = rules.length;
+    
+    // ひし形のサイズ（グローバル設定を使用）
+    const diamondSize = markerSize / mapZoom;
+    
+    // 複数ルール該当時の配置オフセット
+    const offsetDistance = diamondSize * 1.8;
+    const positions_offsets = getMarkerOffsets(count, offsetDistance);
+    
+    rules.forEach((rule, ruleIdx) => {
+      const color = markerSettings[rule].color;
+      const offset = positions_offsets[ruleIdx];
+      
+      const dx = cx + offset.x;
+      const dy = cy + offset.y;
+      
+      // ひし形を描画
+      ctx.save();
+      ctx.translate(dx, dy);
+      
+      // 塗りつぶし
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -diamondSize);  // 上
+      ctx.lineTo(diamondSize, 0);   // 右
+      ctx.lineTo(0, diamondSize);   // 下
+      ctx.lineTo(-diamondSize, 0);  // 左
+      ctx.closePath();
+      ctx.fill();
+      
+      // 輪郭
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 2 / mapZoom;
+      ctx.globalAlpha = 1.0;
+      ctx.stroke();
+      
+      ctx.restore();
+    });
+  });
+  
+  ctx.restore();
+}
+
+// マーカーの配置オフセットを計算
+function getMarkerOffsets(count, distance) {
+  const offsets = [];
+  
+  if (count === 1) {
+    // 1つ：中心
+    offsets.push({ x: 0, y: 0 });
+  } else if (count === 2) {
+    // 2つ：上下に配置
+    offsets.push({ x: 0, y: -distance });
+    offsets.push({ x: 0, y: distance });
+  } else if (count === 3) {
+    // 3つ：三角形に配置（上、左下、右下）
+    const angle1 = -Math.PI / 2;  // 上
+    const angle2 = Math.PI / 6;   // 右下
+    const angle3 = Math.PI * 5 / 6; // 左下
+    
+    offsets.push({ 
+      x: Math.cos(angle1) * distance, 
+      y: Math.sin(angle1) * distance 
+    });
+    offsets.push({ 
+      x: Math.cos(angle2) * distance, 
+      y: Math.sin(angle2) * distance 
+    });
+    offsets.push({ 
+      x: Math.cos(angle3) * distance, 
+      y: Math.sin(angle3) * distance 
+    });
+  }
+  
+  return offsets;
+}
+
+// 注釈描画
+function drawAnnotations(ctx, minX, minY, scale, margin, centerX, centerY) {
+  if (annotations.length === 0) return;
+  
+  annotations.forEach(annotation => {
+    // 車両位置をキャンバス座標に変換（変換前）
+    const baseX = margin + (annotation.vehicleX - minX) * scale;
+    const baseY = margin + (annotation.vehicleY - minY) * scale;
+    
+    // 手動で変換を適用（ズーム/回転/パン）
+    // 1. 中心を原点とする座標系に変換
+    let tx = baseX - centerX;
+    let ty = baseY - centerY;
+    
+    // 2. 回転を適用
+    const rotatedX = tx * Math.cos(mapRotation) - ty * Math.sin(mapRotation);
+    const rotatedY = tx * Math.sin(mapRotation) + ty * Math.cos(mapRotation);
+    
+    // 3. ズームを適用
+    const zoomedX = rotatedX * mapZoom;
+    const zoomedY = rotatedY * mapZoom;
+    
+    // 4. パンとセンターオフセットを適用
+    const vehicleCanvasX = zoomedX + centerX + mapOffsetX;
+    const vehicleCanvasY = zoomedY + centerY + mapOffsetY;
+    
+    // 注釈ボックスの位置（オフセットを適用）
+    const boxX = vehicleCanvasX + annotation.offsetX;
+    const boxY = vehicleCanvasY + annotation.offsetY;
+    
+    ctx.save();
+    
+    // 矢印を描画（車両位置から注釈ボックスへ）
+    ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.moveTo(vehicleCanvasX, vehicleCanvasY);
+    ctx.lineTo(boxX, boxY + annotation.height / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // 矢印の先端
+    const arrowSize = 8;
+    const angle = Math.atan2(boxY + annotation.height / 2 - vehicleCanvasY, boxX - vehicleCanvasX);
+    ctx.fillStyle = 'rgba(255,215,0,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(vehicleCanvasX, vehicleCanvasY);
+    ctx.lineTo(
+      vehicleCanvasX + arrowSize * Math.cos(angle - Math.PI / 6),
+      vehicleCanvasY + arrowSize * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      vehicleCanvasX + arrowSize * Math.cos(angle + Math.PI / 6),
+      vehicleCanvasY + arrowSize * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fill();
+    
+    // 注釈ボックスの背景
+    const isSelected = selectedAnnotation === annotation;
+    ctx.fillStyle = `rgba(50, 50, 50, ${annotation.opacity})`;
+    if (isSelected) {
+      ctx.strokeStyle = 'rgba(255,215,0,1)';
+      ctx.lineWidth = 3;
+    } else {
+      ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+      ctx.lineWidth = 2;
+    }
+    
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, annotation.width, annotation.height, 8);
+    ctx.fill();
+    ctx.stroke();
+    
+    // テキストを描画
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    
+    // テキストを改行と単語で分割して描画
+    const paragraphs = annotation.text.split('\n');
+    let lines = [];
+    const maxWidth = annotation.width - 20;
+    
+    paragraphs.forEach(paragraph => {
+      if (!paragraph.trim()) {
+        lines.push(''); // 空行を保持
+        return;
+      }
+      
+      const words = paragraph.split(' ');
+      let currentLine = '';
+      
+      words.forEach(word => {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      if (currentLine) lines.push(currentLine);
+    });
+    
+    // 最大5行まで表示
+    const lineHeight = 18;
+    lines.slice(0, 5).forEach((line, i) => {
+      ctx.fillText(line, boxX + 10, boxY + 10 + i * lineHeight);
+    });
+    
+    // 選択中の注釈には操作ヒントを表示
+    if (isSelected) {
+      ctx.fillStyle = 'rgba(255,215,0,0.8)';
+      ctx.font = '10px Arial';
+      ctx.fillText('E:編集 D:削除 ↑↓:透明度', boxX + 10, boxY + annotation.height - 15);
+    }
+    
+    // 注釈の情報を保存（クリック判定用）
+    annotation._canvasBounds = {
+      x: boxX,
+      y: boxY,
+      width: annotation.width,
+      height: annotation.height
+    };
+    
+    ctx.restore();
+  });
+}
+
+// 車両描画
+function drawVehicle(ctx, x, y, theta, scale) {
+  const length = VEHICLE_LENGTH * scale * vehicleSizeMultiplier;
+  const width = VEHICLE_WIDTH * scale * vehicleSizeMultiplier;
+  
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(theta);
+  
+  ctx.beginPath();
+  ctx.moveTo(length * 0.4, 0);
+  ctx.lineTo(length * 0.1, -width * 0.5);
+  ctx.lineTo(-length * 0.4, -width * 0.5);
+  ctx.lineTo(-length * 0.4, width * 0.5);
+  ctx.lineTo(length * 0.1, width * 0.5);
+  ctx.closePath();
+  
+  ctx.fillStyle = 'rgba(0,255,100,0.7)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(length * 0.1, 0);
+  ctx.lineTo(length * 0.4, 0);
+  ctx.strokeStyle = 'rgba(255,255,0,1)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+// 線形補間
+function interpolateMap(mapArray, value) {
+  if (!mapArray.length) return 0;
+  
+  mapArray.sort((a,b)=>a.key-b.key);
+  if (value <= mapArray[0].key) return mapArray[0].value;
+  if (value >= mapArray[mapArray.length-1].key) return mapArray[mapArray.length-1].value;
+  for(let i=0;i<mapArray.length-1;i++){
+    if(value>=mapArray[i].key && value<=mapArray[i+1].key){
+      const v0=mapArray[i].value,v1=mapArray[i+1].value;
+      const t=(value-mapArray[i].key)/(mapArray[i+1].key-mapArray[i].key);
+      return v0+t*(v1-v0);
+    }
+  }
+  return 0;
+}
+
+// 制御グラフ描画
+function drawControlGraph() {
+  if (!controlCtx || !csvData.length || !headers.length) return;
+  
+  const strIdx = headers.indexOf('Str');
+  const thrIdx = headers.indexOf('Thr');
+  
+  if (strIdx < 0 || thrIdx < 0) return;
+  
+  const canvas = controlGraph;
+  const ctx = controlCtx;
+  const width = canvas.width;
+  const height = canvas.height;
+  const marginLeft = 45;
+  const marginRight = 45;
+  const marginTop = 20;
+  const marginBottom = 25;
+  const graphWidth = width - marginLeft - marginRight;
+  const graphHeight = height - marginTop - marginBottom;
+  
+  // クリア
+  ctx.clearRect(0, 0, width, height);
+  
+  // 背景
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // グリッド
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = marginTop + (i / 5) * graphHeight;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, y);
+    ctx.lineTo(marginLeft + graphWidth, y);
+    ctx.stroke();
+  }
+  
+  // 軸線
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // Str (舵角) の範囲: -100 ~ 100
+  // Thr (駆動) の範囲: 0 ~ 100
+  const strMin = -100;
+  const strMax = 100;
+  const thrMin = 0;
+  const thrMax = 100;
+  
+  // X軸：データのインデックス
+  const dataLength = csvData.length;
+  
+  // クリッピング領域を設定
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(marginLeft, marginTop, graphWidth, graphHeight);
+  ctx.clip();
+  
+  // ズームとパンを適用した変換
+  const centerX = marginLeft + graphWidth / 2;
+  const centerY = marginTop + graphHeight / 2;
+  
+  ctx.translate(centerX + controlGraphOffsetX, centerY + controlGraphOffsetY);
+  ctx.scale(controlGraphZoomX, controlGraphZoomY);
+  ctx.translate(-centerX, -centerY);
+  
+  // Str (青色) を描画
+  ctx.strokeStyle = '#4ecdc4';
+  ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+  ctx.beginPath();
+  csvData.forEach((row, i) => {
+    const str = parseFloat(row[strIdx]);
+    const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+    const y = marginTop + graphHeight - ((str - strMin) / (strMax - strMin)) * graphHeight;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+  
+  // Thr (赤色) を描画
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+  ctx.beginPath();
+  csvData.forEach((row, i) => {
+    const thr = parseFloat(row[thrIdx]);
+    const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+    const y = marginTop + graphHeight - ((thr - thrMin) / (thrMax - thrMin)) * graphHeight;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+  
+  // 現在位置のマーカー（縦線と点）
+  if (currentTimeIndex < dataLength) {
+    const x = marginLeft + (currentTimeIndex / (dataLength - 1)) * graphWidth;
+    
+    // 縦線
+    ctx.strokeStyle = 'rgba(255,255,0,0.6)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.setLineDash([5 / controlGraphZoomX, 5 / controlGraphZoomX]);
+    ctx.beginPath();
+    ctx.moveTo(x, marginTop);
+    ctx.lineTo(x, marginTop + graphHeight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Str の点
+    const str = parseFloat(csvData[currentTimeIndex][strIdx]);
+    const strY = marginTop + graphHeight - ((str - strMin) / (strMax - strMin)) * graphHeight;
+    ctx.fillStyle = '#4ecdc4';
+    ctx.beginPath();
+    ctx.arc(x, strY, 5 / Math.sqrt(controlGraphZoomX * controlGraphZoomY), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.stroke();
+    
+    // Thr の点
+    const thr = parseFloat(csvData[currentTimeIndex][thrIdx]);
+    const thrY = marginTop + graphHeight - ((thr - thrMin) / (thrMax - thrMin)) * graphHeight;
+    ctx.fillStyle = '#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(x, thrY, 5 / Math.sqrt(controlGraphZoomX * controlGraphZoomY), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2 / Math.sqrt(controlGraphZoomX * controlGraphZoomY);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+  
+  // 表示範囲を計算（ズームとパンを考慮）
+  // 逆変換行列を使って画面座標からデータ座標を計算
+  const getDataCoords = (screenX, screenY) => {
+    const dx = screenX - centerX - controlGraphOffsetX;
+    const dy = screenY - centerY - controlGraphOffsetY;
+    const dataX = centerX + dx / controlGraphZoomX;
+    const dataY = centerY + dy / controlGraphZoomY;
+    return { x: dataX, y: dataY };
+  };
+  
+  // 表示範囲の左上と右下のデータ座標を取得
+  const topLeft = getDataCoords(marginLeft, marginTop);
+  const bottomRight = getDataCoords(marginLeft + graphWidth, marginTop + graphHeight);
+  
+  // データ値の範囲を計算
+  const visibleDataIndexMin = Math.max(0, ((topLeft.x - marginLeft) / graphWidth) * (dataLength - 1));
+  const visibleDataIndexMax = Math.min(dataLength - 1, ((bottomRight.x - marginLeft) / graphWidth) * (dataLength - 1));
+  
+  const visibleStrMin = strMax - ((bottomRight.y - marginTop) / graphHeight) * (strMax - strMin);
+  const visibleStrMax = strMax - ((topLeft.y - marginTop) / graphHeight) * (strMax - strMin);
+  
+  const visibleThrMin = thrMax - ((bottomRight.y - marginTop) / graphHeight) * (thrMax - thrMin);
+  const visibleThrMax = thrMax - ((topLeft.y - marginTop) / graphHeight) * (thrMax - thrMin);
+  
+  // Y軸ラベル (左側: Str) - 表示範囲に合わせて
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleStrMin + (i / 5) * (visibleStrMax - visibleStrMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft - 8, y + 4);
+  }
+  
+  // Y軸タイトル (左側)
+  ctx.save();
+  ctx.translate(12, marginTop + graphHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#4ecdc4';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('Str (舵角 %)', 0, 0);
+  ctx.restore();
+  
+  // Y軸ラベル (右側: Thr) - 表示範囲に合わせて
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'left';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleThrMin + (i / 5) * (visibleThrMax - visibleThrMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft + graphWidth + 8, y + 4);
+  }
+  
+  // Y軸タイトル (右側)
+  ctx.save();
+  ctx.translate(width - 12, marginTop + graphHeight / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('Thr (駆動 %)', 0, 0);
+  ctx.restore();
+  
+  // X軸ラベル - 表示範囲に合わせて
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const index = Math.floor(visibleDataIndexMin + (i / 5) * (visibleDataIndexMax - visibleDataIndexMin));
+    const x = marginLeft + (i / 5) * graphWidth;
+    ctx.fillText(index, x, height - 8);
+  }
+  
+  // X軸タイトル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('データインデックス', marginLeft + graphWidth / 2, height - 2);
+}
+
+// センサグラフ描画
+function drawSensorGraph() {
+  if (!sensorCtx || !csvData || csvData.length === 0) return;
+  
+  // メディアンフィルタが有効な場合はフィルタ済みデータを使用
+  const dataSource = (medianFilterEnabled && filteredData.length > 0) ? filteredData : csvData;
+  
+  const canvas = sensorGraph;
+  const ctx = sensorCtx;
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  if (!width || !height) return;
+  
+  // 選択されたセンサを取得
+  const selectedSensors = Array.from(document.querySelectorAll('.sensor-select-checkbox input:checked'))
+    .map(cb => cb.value);
+  
+  const sensorColors = {
+    'RrLH': '#ff3296',
+    'FrLH': '#64c8ff',
+    'Fr': '#32ff32',
+    'FrRH': '#ffc832',
+    'RrRH': '#ff6432'
+  };
+  
+  const marginLeft = 60;
+  const marginRight = 30;
+  const marginTop = 30;
+  const marginBottom = 40;
+  const graphWidth = width - marginLeft - marginRight;
+  const graphHeight = height - marginTop - marginBottom;
+  
+  const dataLength = dataSource.length;
+  
+  // 背景をクリア
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, width, height);
+  
+  // センサがない場合のメッセージ
+  if (selectedSensors.length === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('センサを選択してください', width / 2, height / 2);
+    return;
+  }
+  
+  // 各センサのインデックスを取得
+  const sensorIndices = {};
+  selectedSensors.forEach(sensor => {
+    const idx = headers.indexOf(sensor);
+    if (idx !== -1) {
+      sensorIndices[sensor] = idx;
+    }
+  });
+  
+  // 全センサのデータ範囲を計算（すべて同じY軸）
+  let allMin = Infinity;
+  let allMax = -Infinity;
+  
+  Object.values(sensorIndices).forEach(idx => {
+    dataSource.forEach(row => {
+      const value = parseFloat(row[idx]);
+      if (!isNaN(value)) {
+        allMin = Math.min(allMin, value);
+        allMax = Math.max(allMax, value);
+      }
+    });
+  });
+  
+  if (!isFinite(allMin) || !isFinite(allMax)) {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('データがありません', width / 2, height / 2);
+    return;
+  }
+  
+  // 範囲に余裕を持たせる
+  const range = allMax - allMin;
+  allMin -= range * 0.1;
+  allMax += range * 0.1;
+  
+  // グリッド線を描画
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = marginTop + (i / 5) * graphHeight;
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, y);
+    ctx.lineTo(marginLeft + graphWidth, y);
+    ctx.stroke();
+  }
+  
+  // 軸を描画
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(marginLeft, marginTop, graphWidth, graphHeight);
+  
+  // クリッピング領域を設定
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(marginLeft, marginTop, graphWidth, graphHeight);
+  ctx.clip();
+  
+  // ズームとパンを適用
+  const centerX = marginLeft + graphWidth / 2;
+  const centerY = marginTop + graphHeight / 2;
+  
+  ctx.translate(centerX + sensorGraphOffsetX, centerY + sensorGraphOffsetY);
+  ctx.scale(sensorGraphZoomX, sensorGraphZoomY);
+  ctx.translate(-centerX, -centerY);
+  
+  // 各センサのラインを描画
+  selectedSensors.forEach(sensor => {
+    const idx = sensorIndices[sensor];
+    if (idx === undefined) return;
+    
+    const color = sensorColors[sensor];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+    ctx.beginPath();
+    
+    dataSource.forEach((row, i) => {
+      const value = parseFloat(row[idx]);
+      if (isNaN(value)) return;
+      
+      const x = marginLeft + (i / (dataLength - 1)) * graphWidth;
+      const y = marginTop + graphHeight - ((value - allMin) / (allMax - allMin)) * graphHeight;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+  });
+  
+  // 現在位置のマーカー
+  if (currentTimeIndex < dataLength) {
+    const x = marginLeft + (currentTimeIndex / (dataLength - 1)) * graphWidth;
+    
+    // 縦線
+    ctx.strokeStyle = 'rgba(255,255,0,0.6)';
+    ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+    ctx.setLineDash([5 / sensorGraphZoomX, 5 / sensorGraphZoomX]);
+    ctx.beginPath();
+    ctx.moveTo(x, marginTop);
+    ctx.lineTo(x, marginTop + graphHeight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // 各センサの現在位置の点
+    selectedSensors.forEach(sensor => {
+      const idx = sensorIndices[sensor];
+      if (idx === undefined) return;
+      
+      const value = parseFloat(dataSource[currentTimeIndex][idx]);
+      if (isNaN(value)) return;
+      
+      const y = marginTop + graphHeight - ((value - allMin) / (allMax - allMin)) * graphHeight;
+      const color = sensorColors[sensor];
+      
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2 / Math.sqrt(sensorGraphZoomX * sensorGraphZoomY);
+      ctx.stroke();
+    });
+  }
+  
+  ctx.restore();
+  
+  // 表示範囲を計算
+  const getDataCoords = (screenX, screenY) => {
+    const dx = screenX - centerX - sensorGraphOffsetX;
+    const dy = screenY - centerY - sensorGraphOffsetY;
+    const dataX = centerX + dx / sensorGraphZoomX;
+    const dataY = centerY + dy / sensorGraphZoomY;
+    return { x: dataX, y: dataY };
+  };
+  
+  const topLeft = getDataCoords(marginLeft, marginTop);
+  const bottomRight = getDataCoords(marginLeft + graphWidth, marginTop + graphHeight);
+  
+  const visibleDataIndexMin = Math.max(0, ((topLeft.x - marginLeft) / graphWidth) * (dataLength - 1));
+  const visibleDataIndexMax = Math.min(dataLength - 1, ((bottomRight.x - marginLeft) / graphWidth) * (dataLength - 1));
+  
+  const visibleMin = allMax - ((bottomRight.y - marginTop) / graphHeight) * (allMax - allMin);
+  const visibleMax = allMax - ((topLeft.y - marginTop) / graphHeight) * (allMax - allMin);
+  
+  // Y軸ラベル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const value = visibleMin + (i / 5) * (visibleMax - visibleMin);
+    const y = marginTop + graphHeight - (i / 5) * graphHeight;
+    ctx.fillText(value.toFixed(0), marginLeft - 8, y + 4);
+  }
+  
+  // Y軸タイトル
+  ctx.save();
+  ctx.translate(15, marginTop + graphHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('センサ値 (mm)', 0, 0);
+  ctx.restore();
+  
+  // X軸ラベル
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const index = Math.floor(visibleDataIndexMin + (i / 5) * (visibleDataIndexMax - visibleDataIndexMin));
+    const x = marginLeft + (i / 5) * graphWidth;
+    ctx.fillText(index, x, height - 8);
+  }
+  
+  // X軸タイトル
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('データインデックス', marginLeft + graphWidth / 2, height - 2);
+  
+  // 凡例
+  const legendX = marginLeft + 10;
+  const legendY = marginTop + 10;
+  const legendLineHeight = 18;
+  
+  ctx.font = '11px Arial';
+  selectedSensors.forEach((sensor, i) => {
+    const color = sensorColors[sensor];
+    const y = legendY + i * legendLineHeight;
+    
+    // 色のボックス
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, y - 8, 12, 12);
+    
+    // センサ名
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.textAlign = 'left';
+    ctx.fillText(sensor, legendX + 18, y + 2);
+  });
+}
+</script>
+</body>
+</html>
+
